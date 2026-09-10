@@ -1,0 +1,3 @@
+[submodule "external/dlssg_for_sm86"]
+	path = external/dlssg_for_sm86
+	url = https://github.com/sdli1995/dlssg_for_sm86.git
