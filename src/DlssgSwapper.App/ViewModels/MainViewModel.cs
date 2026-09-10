@@ -170,7 +170,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (value == IsInstalled) return;
             if (value) Install();
-            else Uninstall();
+            else if (_selectedProfile != null) Uninstall(_selectedProfile);
             OnPropertyChanged();
         }
     }
@@ -387,13 +387,16 @@ public sealed class MainViewModel : ObservableObject
     {
         if (item == null) return;
 
-        bool confirmed = await Dialogs.ConfirmDestructiveAsync(
+        bool installed = item.Inspection.Kind != InstallKind.NotInstalled;
+        var choice = await Dialogs.ConfirmDestructiveAsync(
             "Remove game",
-            $"“{item.Name}” will be removed from the library.\n\n" +
-            "Files already installed in the game directory are left unchanged; use Uninstall first to restore the originals. " +
-            "The saved backups for this game will be deleted.",
-            "Remove");
-        if (!confirmed) return;
+            $"“{item.Name}” will be removed from the library, and its saved backups will be deleted.",
+            "Remove",
+            optionText: installed ? "Uninstall the installed files first (restores the originals)" : null,
+            optionDefault: true);
+        if (!choice.Confirmed) return;
+
+        if (choice.OptionChecked && !Uninstall(item)) return;
 
         _store.Remove(item.Profile.Id);
         try
@@ -407,7 +410,9 @@ public sealed class MainViewModel : ObservableObject
             ReloadProfiles();
             return;
         }
-        SetStatus($"Removed {item.Name}.");
+        SetStatus(choice.OptionChecked
+            ? $"Removed {item.Name} and uninstalled its files."
+            : $"Removed {item.Name}.");
         ReloadProfiles();
     }
 
@@ -438,23 +443,24 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void Uninstall()
+    private bool Uninstall(GameProfileViewModel item)
     {
-        var item = _selectedProfile;
-        if (item == null) return;
-
         try
         {
             var warnings = _service.Uninstall(item.Profile);
             string message = $"Uninstalled from {Path.GetDirectoryName(item.ExecutablePath)}.";
             if (warnings.Count > 0) message += Environment.NewLine + string.Join(Environment.NewLine, warnings);
             SetStatus(message);
-            RefreshSelected();
+            item.Update(item.Profile, SafeInspect(item.Profile));
+            OnPropertyChanged(nameof(IsInstalled));
+            RefreshVerification(reInspect: false);
+            return true;
         }
         catch (Exception e)
         {
             SetStatus(e.Message);
             Dialogs.Error("Uninstall failed", e.Message);
+            return false;
         }
     }
 
