@@ -71,12 +71,13 @@ public class BackupStoreTests
         try
         {
             var store = new BackupStore(backupRoot);
+            byte[] originalBytes = { 1 };
+            File.WriteAllBytes(Path.Combine(gameDir, "dlssg_sm86.ini"), originalBytes);
             store.BackupOriginal(gameDir, "dlssg_sm86.ini");
-            File.WriteAllBytes(Path.Combine(gameDir, "dlssg_sm86.ini"), new byte[] { 1 });
             File.WriteAllBytes(Path.Combine(backupRoot, "dlssg_sm86.ini"), new byte[] { 2, 3, 4 });
 
             Assert.Throws<CorruptBackupException>(() => store.RestoreOrDelete(gameDir, "dlssg_sm86.ini"));
-            Assert.Equal(new byte[] { 1 }, File.ReadAllBytes(Path.Combine(gameDir, "dlssg_sm86.ini")));
+            Assert.Equal(originalBytes, File.ReadAllBytes(Path.Combine(gameDir, "dlssg_sm86.ini")));
         }
         finally
         {
