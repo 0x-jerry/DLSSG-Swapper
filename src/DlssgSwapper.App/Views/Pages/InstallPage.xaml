@@ -3,6 +3,19 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       Title="Install">
+    <Page.Resources>
+        <Style x:Key="CardDivider" TargetType="Border">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Margin" Value="0,14" />
+            <Setter Property="Background" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        </Style>
+        <Style x:Key="DiagnosticPanel" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+    </Page.Resources>
+
     <Grid Margin="{StaticResource PagePadding}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -152,47 +165,114 @@
                     <StackPanel>
                         <Border Style="{StaticResource CardPanel}">
                             <StackPanel>
-                                <TextBlock Text="Target" Style="{StaticResource SectionTitleText}" Margin="0,0,0,10" />
-                                <TextBlock Text="{Binding SelectedProfile.Name}" FontSize="15" FontWeight="SemiBold"
+                                <Grid Margin="0,0,0,14">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:SymbolIcon Symbol="Target24" FontSize="18"
+                                                       Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Target" Style="{StaticResource SectionTitleText}"
+                                                   Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <Border Style="{StaticResource InstallStatePill}" HorizontalAlignment="Right"
+                                            VerticalAlignment="Center" DataContext="{Binding SelectedProfile}">
+                                        <TextBlock Text="{Binding InstallState}" FontSize="12"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock Text="{Binding SelectedProfile.Name}" FontSize="16" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                            TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding SelectedProfile.ExecutablePath}" Style="{StaticResource CaptionText}"
-                                           Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
-                                <Border Style="{StaticResource InstallStatePill}" HorizontalAlignment="Left" Margin="0,10,0,0"
-                                        DataContext="{Binding SelectedProfile}">
-                                    <TextBlock Text="{Binding InstallState}" FontSize="12"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                </Border>
-                                <ui:ToggleSwitch IsChecked="{Binding IsInstalled, Mode=TwoWay}"
-                                                 IsEnabled="{Binding HasSelectedProfile}"
-                                                 OffContent="Install / Swap" OnContent="Uninstall"
-                                                 HorizontalAlignment="Left" Margin="0,14,0,0" />
-                                <ui:Button Content="Open folder" Command="{Binding OpenGameFolderCommand}"
-                                           Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,12,0,0">
-                                    <ui:Button.Icon>
-                                        <ui:SymbolIcon Symbol="FolderOpen24" />
-                                    </ui:Button.Icon>
-                                </ui:Button>
+                                <Grid Margin="0,4,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:SymbolIcon Grid.Column="0" Symbol="Folder24" FontSize="14"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedProfile.ExecutablePath}"
+                                               Style="{StaticResource CaptionText}" Margin="6,0,6,0"
+                                               VerticalAlignment="Center" TextWrapping="NoWrap"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding SelectedProfile.ExecutablePath}" />
+                                    <ui:Button Grid.Column="2" Command="{Binding OpenGameFolderCommand}"
+                                               Style="{StaticResource IconButton}" Width="28" Height="28"
+                                               ToolTip="Open game folder" AutomationProperties.Name="Open game folder">
+                                        <ui:Button.Icon>
+                                            <ui:SymbolIcon Symbol="FolderOpen24" FontSize="16" />
+                                        </ui:Button.Icon>
+                                    </ui:Button>
+                                </Grid>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                                    <TextBlock Text="Verification" Style="{StaticResource SectionTitleText}"
-                                               VerticalAlignment="Center" />
+                                <Border Style="{StaticResource CardDivider}" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Installation" Style="{StaticResource SectionTitleText}" />
+                                        <TextBlock Style="{StaticResource CaptionText}" Margin="0,2,0,0"
+                                                   Text="Installs the selected payload next to the executable. Turn off to uninstall and restore the originals." />
+                                    </StackPanel>
+                                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding IsInstalled, Mode=TwoWay}"
+                                                     IsEnabled="{Binding HasSelectedProfile}"
+                                                     VerticalAlignment="Center" Margin="12,0,0,0"
+                                                     AutomationProperties.Name="Install or uninstall the payload" />
+                                </Grid>
+
+                                <Border Style="{StaticResource CardDivider}" />
+
+                                <Grid Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="16" VerticalAlignment="Center">
+                                            <ui:SymbolIcon.Style>
+                                                <Style TargetType="ui:SymbolIcon">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Verification.Severity}" Value="Success">
+                                                            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Verification.Severity}" Value="Caution">
+                                                            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:SymbolIcon.Style>
+                                        </ui:SymbolIcon>
+                                        <TextBlock Text="Verification" Style="{StaticResource SectionTitleText}"
+                                                   Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
                                     <ui:Button Command="{Binding RefreshVerificationCommand}" Style="{StaticResource IconButton}"
-                                               ToolTip="Re-check installed files and mod logs" Margin="8,0,0,0">
+                                               HorizontalAlignment="Right" ToolTip="Re-check installed files and mod logs"
+                                               AutomationProperties.Name="Re-check installation">
                                         <ui:Button.Icon>
                                             <ui:SymbolIcon Symbol="ArrowSync24" />
                                         </ui:Button.Icon>
                                     </ui:Button>
-                                </StackPanel>
-                                <TextBlock Text="{Binding Verification.Headline}" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,8,0,0" />
-                                <ItemsControl ItemsSource="{Binding Verification.Lines}" Margin="0,4,0,0">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" Style="{StaticResource CaptionText}" Margin="0,2,0,0" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                </Grid>
+                                <TextBlock Text="{Binding Verification.Headline}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <Border Style="{StaticResource DiagnosticPanel}" Margin="0,8,0,0">
+                                    <ItemsControl ItemsSource="{Binding Verification.Lines}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Ellipse Grid.Column="0" Width="4" Height="4" Margin="0,0,8,0"
+                                                             VerticalAlignment="Center"
+                                                             Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding}" Style="{StaticResource CaptionText}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
                             </StackPanel>
                         </Border>
 

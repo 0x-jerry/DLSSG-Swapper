@@ -20,7 +20,14 @@ public enum Preset
     Performance,
 }
 
-public sealed record VerificationReport(string Headline, IReadOnlyList<string> Lines);
+public enum VerificationSeverity
+{
+    Neutral,
+    Success,
+    Caution,
+}
+
+public sealed record VerificationReport(string Headline, IReadOnlyList<string> Lines, VerificationSeverity Severity = VerificationSeverity.Neutral);
 
 public enum AppSection
 {
@@ -497,8 +504,11 @@ public sealed class MainViewModel : ObservableObject
         lines.AddRange(inspection.Warnings);
         lines.AddRange(log.Messages);
 
+        var severity = !log.LogsFound
+            ? VerificationSeverity.Neutral
+            : log.Verified ? VerificationSeverity.Success : VerificationSeverity.Caution;
         string headline = !log.LogsFound ? "No logs yet" : log.Verified ? "Route confirmed" : "Route not confirmed";
-        Verification = new VerificationReport(headline, lines);
+        Verification = new VerificationReport(headline, lines, severity);
     }
 
     private void RefreshSelected()
