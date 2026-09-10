@@ -1,8 +1,11 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Wpf.Ui.Controls;
 using MessageBox = Wpf.Ui.Controls.MessageBox;
 using MessageBoxResult = Wpf.Ui.Controls.MessageBoxResult;
 using TextBlock = System.Windows.Controls.TextBlock;
+using UiButton = Wpf.Ui.Controls.Button;
 using WpfCheckBox = System.Windows.Controls.CheckBox;
 using WpfStackPanel = System.Windows.Controls.StackPanel;
 
@@ -38,6 +41,7 @@ internal static class Dialogs
         dialog.PrimaryButtonText = confirmText;
         dialog.PrimaryButtonAppearance = ControlAppearance.Danger;
         dialog.CloseButtonText = "Cancel";
+        UseLightTextForDangerButtons(dialog);
 
         bool confirmed = await dialog.ShowDialogAsync() == MessageBoxResult.Primary;
         return new Confirmation(confirmed, option?.IsChecked == true);
@@ -68,6 +72,22 @@ internal static class Dialogs
         }
 
         return dialog;
+    }
+
+    // WPF-UI's Danger appearance only recolors the background, so the confirm button keeps the
+    // dark default label on a red fill. Scope an implicit style to this dialog that lightens the
+    // text of any danger button (the dialog's primary button) without touching Cancel.
+    private static void UseLightTextForDangerButtons(MessageBox dialog)
+    {
+        if (Application.Current?.TryFindResource(typeof(UiButton)) is not Style baseStyle) return;
+
+        var danger = new Trigger { Property = UiButton.AppearanceProperty, Value = ControlAppearance.Danger };
+        danger.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        danger.Setters.Add(new Setter(UiButton.PressedForegroundProperty, Brushes.White));
+
+        var style = new Style(typeof(UiButton), baseStyle);
+        style.Triggers.Add(danger);
+        dialog.Resources.Add(typeof(UiButton), style);
     }
 
     private static TextBlock Paragraph(string text) => new()
