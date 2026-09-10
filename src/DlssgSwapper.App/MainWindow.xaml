@@ -52,12 +52,17 @@
                                 <ColumnDefinition Width="90" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Name" Foreground="Gray" />
-                            <TextBlock Grid.Column="1" Text="{Binding SelectedProfile.Name}" TextWrapping="Wrap" />
-                            <TextBlock Grid.Column="0" Text="Executable" Foreground="Gray" Margin="0,4,0,0" />
-                            <TextBlock Grid.Column="1" Text="{Binding SelectedProfile.ExecutablePath}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                            <TextBlock Grid.Column="0" Text="State" Foreground="Gray" Margin="0,4,0,0" />
-                            <TextBlock Grid.Column="1" Text="{Binding SelectedProfile.InstallSummary}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" Foreground="Gray" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedProfile.Name}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Executable" Foreground="Gray" Margin="0,4,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedProfile.ExecutablePath}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="State" Foreground="Gray" Margin="0,4,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedProfile.InstallSummary}" TextWrapping="Wrap" Margin="0,4,0,0" />
                         </Grid>
                     </StackPanel>
                 </GroupBox>
