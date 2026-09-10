@@ -109,6 +109,7 @@ public sealed class MainViewModel : ObservableObject
         RemoveGameCommand = new AsyncRelayCommand<GameProfileViewModel>(RemoveGame);
         ConfigureGameCommand = new RelayCommand<GameProfileViewModel>(ConfigureGame);
         ShowGamesCommand = new RelayCommand(() => NavigationRequested?.Invoke(AppSection.Games));
+        BackCommand = new RelayCommand(() => BackRequested?.Invoke());
         CopyStatusCommand = new RelayCommand(CopyStatus);
         OpenGameFolderCommand = new RelayCommand(OpenGameFolder, () => SelectedProfile != null);
         OpenBackupFolderCommand = new RelayCommand(() => OpenFolder(BackupRoot));
@@ -119,6 +120,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public event Action<AppSection>? NavigationRequested;
+    public event Action? BackRequested;
 
     public ObservableCollection<GameProfileViewModel> Profiles { get; } = new();
     public ObservableCollection<PayloadVersion> Versions { get; }
@@ -133,6 +135,7 @@ public sealed class MainViewModel : ObservableObject
     public AsyncRelayCommand<GameProfileViewModel> RemoveGameCommand { get; }
     public RelayCommand<GameProfileViewModel> ConfigureGameCommand { get; }
     public RelayCommand ShowGamesCommand { get; }
+    public RelayCommand BackCommand { get; }
     public RelayCommand CopyStatusCommand { get; }
     public RelayCommand OpenGameFolderCommand { get; }
     public RelayCommand OpenBackupFolderCommand { get; }

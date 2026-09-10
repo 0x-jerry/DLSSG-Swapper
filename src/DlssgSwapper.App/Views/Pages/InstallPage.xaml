@@ -15,9 +15,9 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <ui:Button Grid.Column="0" Command="{Binding ShowGamesCommand}" Style="{StaticResource IconButton}"
+            <ui:Button Grid.Column="0" Command="{Binding BackCommand}" Style="{StaticResource IconButton}"
                        VerticalAlignment="Top" Margin="0,2,10,0"
-                       ToolTip="Back to Library" AutomationProperties.Name="Back to Library">
+                       ToolTip="Back (mouse back button, Alt+Left)" AutomationProperties.Name="Back">
                 <ui:Button.Icon>
                     <ui:SymbolIcon Symbol="ArrowLeft24" />
                 </ui:Button.Icon>
