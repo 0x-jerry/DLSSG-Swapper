@@ -1,162 +1,199 @@
-<Window x:Class="DlssgSwapper.App.MainWindow"
+<ui:FluentWindow x:Class="DlssgSwapper.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        mc:Ignorable="d"
         Title="DLSSG SM86 Swap Tool"
         Height="700" Width="1100"
-        MinHeight="560" MinWidth="900">
-    <Grid Margin="10">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" MinWidth="240" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        MinHeight="560" MinWidth="900"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica"
+        WindowCornerPreference="Round">
+    <DockPanel>
+        <ui:TitleBar DockPanel.Dock="Top" Title="DLSSG SM86 Swap Tool, for dlssg_for_sm86 (RTX 30 / SM86)"
+                     ShowMinimize="True" ShowMaximize="True" ShowClose="True" />
 
-        <DockPanel Grid.Column="0" Margin="0,0,12,0">
-            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                <TextBlock Text="Games" FontWeight="SemiBold" FontSize="14" />
-            </StackPanel>
-            <UniformGrid DockPanel.Dock="Bottom" Rows="1" Columns="3" Margin="0,6,0,0">
-                <Button Content="Add…" Command="{Binding AddGameCommand}" Margin="0,0,3,0" />
-                <Button Content="Steam…" Command="{Binding ScanSteamCommand}" Margin="0,0,3,0" />
-                <Button Content="Remove" Command="{Binding RemoveGameCommand}" />
-            </UniformGrid>
-            <ListBox ItemsSource="{Binding Profiles}"
-                     SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Margin="2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding SourceName}" Foreground="Gray" Margin="8,0,0,0" FontSize="11" />
-                            </StackPanel>
-                            <TextBlock Text="{Binding InstallSummary}" Foreground="#77777F" FontSize="11" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
+        <Grid Margin="12,4,12,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" MinWidth="240" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <Border Background="#1F1B24" CornerRadius="4" Padding="8" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="{Binding GpuSummary}" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding GpuRouterSuggestion}" Foreground="Gray" FontSize="11" Margin="0,2,0,0" />
-                    </StackPanel>
-                </Border>
-
-                <GroupBox Header="Game" Padding="8" Margin="0,0,0,10">
-                    <StackPanel>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="90" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" Foreground="Gray" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedProfile.Name}" TextWrapping="Wrap" />
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Executable" Foreground="Gray" Margin="0,4,0,0" />
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedProfile.ExecutablePath}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="State" Foreground="Gray" Margin="0,4,0,0" />
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedProfile.InstallSummary}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                        </Grid>
-                    </StackPanel>
-                </GroupBox>
-
-                <GroupBox Header="Payload" Padding="8" Margin="0,0,0,10">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="110" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="110" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Version" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,6" />
-                        <ComboBox Grid.Row="0" Grid.Column="1"
-                                  ItemsSource="{Binding Versions}"
-                                  DisplayMemberPath="DisplayName"
-                                  SelectedItem="{Binding SelectedVersion}" Margin="0,0,12,6" />
-                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Entry point" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,6" />
-                        <ComboBox Grid.Row="0" Grid.Column="3"
-                                  ItemsSource="{Binding SelectedVersion.EntryPoints}"
-                                  DisplayMemberPath="FileName"
-                                  SelectedItem="{Binding SelectedEntryPoint}" Margin="0,0,0,6" />
-
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Preset" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,6" />
-                        <ComboBox Grid.Row="1" Grid.Column="1"
-                                  ItemsSource="{Binding Presets}"
-                                  SelectedItem="{Binding SelectedPreset}" Margin="0,0,12,6" />
-                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Router" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,6" />
-                        <ComboBox Grid.Row="1" Grid.Column="3"
-                                  ItemsSource="{Binding Routers}"
-                                  SelectedItem="{Binding SelectedRouter}"
-                                  Margin="0,0,0,6" />
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Kernel image" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <ComboBox Grid.Row="2" Grid.Column="1"
-                                  ItemsSource="{Binding KernelImages}"
-                                  SelectedItem="{Binding SelectedKernelImage}"
-                                  Margin="0,0,12,0" />                    </Grid>
-                </GroupBox>
-
-                <GroupBox Header="Frame generation settings" Padding="8" Margin="0,0,0,10">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="110" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="110" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Max generated frames" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,6" />
-                        <ComboBox Grid.Row="0" Grid.Column="1"
-                                  ItemsSource="{Binding MaxFrames}"
-                                  SelectedItem="{Binding SelectedMaxFrames}" Margin="0,0,12,6" />
-                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Logging level" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,6" />
-                        <ComboBox Grid.Row="0" Grid.Column="3"
-                                  ItemsSource="{Binding LoggingLevels}"
-                                  SelectedItem="{Binding SelectedLoggingLevel}" Margin="0,0,0,6" />
-
-                        <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                  Content="Approximate sampling (HardwareBilinear=1)"
-                                  IsChecked="{Binding HardwareBilinear}"
-                                  VerticalAlignment="Center" Margin="0,0,12,0" />                        <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
-                                  Content="Allow overwriting foreign files (backed up)"
-                                  IsChecked="{Binding OverwriteForeign}" VerticalAlignment="Center" />
-                    </Grid>
-                </GroupBox>
-
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <Button Content="Install / Swap" Command="{Binding InstallCommand}" Padding="14,6" FontWeight="SemiBold" Margin="0,0,8,0" />
-                    <Button Content="Uninstall" Command="{Binding UninstallCommand}" Padding="14,6" Margin="0,0,8,0" />
-                    <Button Content="Verify" Command="{Binding VerifyCommand}" Padding="14,6" />
+            <DockPanel Grid.Column="0" Margin="0,0,12,0">
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <TextBlock Text="Games" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                 </StackPanel>
+                <UniformGrid DockPanel.Dock="Bottom" Rows="1" Columns="3" Margin="0,6,0,0">
+                    <ui:Button Content="Add…" Command="{Binding AddGameCommand}" Margin="0,0,3,0" />
+                    <ui:Button Content="Steam…" Command="{Binding ScanSteamCommand}" Margin="0,0,3,0" />
+                    <ui:Button Content="Remove" Command="{Binding RemoveGameCommand}" />
+                </UniformGrid>
+                <ui:ListView x:Name="ProfilesList"
+                            ItemsSource="{Binding Profiles}"
+                            SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ui:ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="4,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding SourceName}" Margin="8,0,0,0" FontSize="11"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding InstallSummary}" FontSize="11" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ui:ListView.ItemTemplate>
+                </ui:ListView>
+            </DockPanel>
 
-                <GroupBox Header="Status" Padding="8">
-                    <TextBox Text="{Binding StatusText, Mode=OneWay}"
-                             IsReadOnly="True"
-                             TextWrapping="Wrap"
-                             AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
-                             Height="140"
-                             BorderThickness="0"
-                             Background="Transparent"
-                             FontFamily="Consolas" />
-                </GroupBox>
-            </StackPanel>
-        </ScrollViewer>
-    </Grid>
-</Window>
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="{Binding GpuSummary}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="{Binding GpuRouterSuggestion}" FontSize="11" Margin="0,2,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Game" FontWeight="SemiBold" Margin="0,0,0,6"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedProfile.Name}" TextWrapping="Wrap" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Executable" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedProfile.ExecutablePath}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="State" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedProfile.InstallSummary}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Payload" FontWeight="SemiBold" Margin="0,0,0,6"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Version" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <ComboBox Grid.Row="0" Grid.Column="1"
+                                             ItemsSource="{Binding Versions}"
+                                             DisplayMemberPath="DisplayName"
+                                             SelectedItem="{Binding SelectedVersion}" Margin="0,0,12,6" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Entry point" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <ComboBox Grid.Row="0" Grid.Column="3"
+                                             ItemsSource="{Binding SelectedVersion.EntryPoints}"
+                                             DisplayMemberPath="FileName"
+                                             SelectedItem="{Binding SelectedEntryPoint}" Margin="0,0,0,6" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Preset" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <ComboBox Grid.Row="1" Grid.Column="1"
+                                             ItemsSource="{Binding Presets}"
+                                             SelectedItem="{Binding SelectedPreset}" Margin="0,0,12,6" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="Router" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <ComboBox Grid.Row="1" Grid.Column="3"
+                                             ItemsSource="{Binding Routers}"
+                                             SelectedItem="{Binding SelectedRouter}" Margin="0,0,0,6" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Kernel image" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <ComboBox Grid.Row="2" Grid.Column="1"
+                                             ItemsSource="{Binding KernelImages}"
+                                             SelectedItem="{Binding SelectedKernelImage}" Margin="0,0,12,0" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Frame generation settings" FontWeight="SemiBold" Margin="0,0,0,6"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Max generated frames" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <ComboBox Grid.Row="0" Grid.Column="1"
+                                             ItemsSource="{Binding MaxFrames}"
+                                             SelectedItem="{Binding SelectedMaxFrames}" Margin="0,0,12,6" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Logging level" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <ComboBox Grid.Row="0" Grid.Column="3"
+                                             ItemsSource="{Binding LoggingLevels}"
+                                             SelectedItem="{Binding SelectedLoggingLevel}" Margin="0,0,0,6" />
+
+                                <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Content="Approximate sampling (HardwareBilinear=1)"
+                                             IsChecked="{Binding HardwareBilinear}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                                             Content="Allow overwriting foreign files (backed up)"
+                                             IsChecked="{Binding OverwriteForeign}" VerticalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <ui:Button Content="Install / Swap" Command="{Binding InstallCommand}" Appearance="Primary"
+                                   Padding="16,7" FontWeight="SemiBold" Margin="0,0,8,0" />
+                        <ui:Button Content="Uninstall" Command="{Binding UninstallCommand}" Padding="16,7" Margin="0,0,8,0" />
+                        <ui:Button Content="Verify" Command="{Binding VerifyCommand}" Padding="16,7" />
+                    </StackPanel>
+
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6" Padding="10,8">
+                        <StackPanel>
+                            <TextBlock Text="Status" FontWeight="SemiBold" Margin="0,0,0,6"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <ui:TextBox Text="{Binding StatusText, Mode=OneWay}"
+                                        IsReadOnly="True"
+                                        TextWrapping="Wrap"
+                                        AcceptsReturn="True"
+                                        VerticalScrollBarVisibility="Auto"
+                                        Height="140"
+                                        BorderThickness="0"
+                                        FontFamily="Consolas"
+                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</ui:FluentWindow>
