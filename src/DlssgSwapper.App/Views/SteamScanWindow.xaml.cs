@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using DlssgSwapper.Core.Steam;
@@ -7,6 +8,8 @@ namespace DlssgSwapper.App.Views;
 
 public partial class SteamScanWindow
 {
+    private sealed record ExeRow(CandidateExe Exe, string DisplayPath);
+
     private readonly List<SteamApp> _apps = new();
     private bool _scanning;
 
@@ -76,11 +79,10 @@ public partial class SteamScanWindow
 
     private void OnGameSelected(object sender, SelectionChangedEventArgs e)
     {
-        var exes = GamesList.SelectedItem is SteamApp app
-            ? SteamLibraryScanner.FindCandidateExecutables(app.InstallDir)
-            : null;
+        var app = GamesList.SelectedItem as SteamApp;
+        var exes = app == null ? null : SteamLibraryScanner.FindCandidateExecutables(app.InstallDir);
 
-        ExesList.ItemsSource = exes;
+        ExesList.ItemsSource = exes?.Select(exe => new ExeRow(exe, RelativePath(exe.Path, app!.InstallDir))).ToList();
         OkButton.IsEnabled = false;
         ExesHint.Text = exes switch
         {
@@ -90,6 +92,11 @@ public partial class SteamScanWindow
         };
     }
 
+    private static string RelativePath(string path, string root) =>
+        path.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+            ? path[root.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            : path;
+
     private void OnExeSelected(object sender, SelectionChangedEventArgs e)
     {
         OkButton.IsEnabled = GamesList.SelectedItem is SteamApp && ExesList.SelectedItem != null;
@@ -97,10 +104,10 @@ public partial class SteamScanWindow
 
     private void OnOk(object sender, RoutedEventArgs e)
     {
-        if (GamesList.SelectedItem is SteamApp app && ExesList.SelectedItem is CandidateExe exe)
+        if (GamesList.SelectedItem is SteamApp app && ExesList.SelectedItem is ExeRow row)
         {
             SelectedGameName = app.Name;
-            SelectedExe = exe.Path;
+            SelectedExe = row.Exe.Path;
             DialogResult = true;
         }
     }

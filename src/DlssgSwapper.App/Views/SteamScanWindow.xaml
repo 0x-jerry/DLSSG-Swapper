@@ -99,7 +99,8 @@
                                 </ui:ListView.ItemContainerStyle>
                                 <ui:ListView.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding Path}" Margin="2,1"
+                                        <TextBlock Text="{Binding DisplayPath}" Margin="2,1"
+                                                   ToolTip="{Binding Exe.Path}"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    TextTrimming="CharacterEllipsis" />
                                     </DataTemplate>
