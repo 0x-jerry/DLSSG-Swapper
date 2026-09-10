@@ -59,6 +59,9 @@
             <DataTrigger Binding="{Binding InstallState}" Value="Partial">
                 <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
             </DataTrigger>
+            <DataTrigger Binding="{Binding InstallState}" Value="Not installed">
+                <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 
@@ -71,11 +74,6 @@
     </Style>
     <Style x:Key="ToolbarButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
         <Setter Property="Padding" Value="12,6" />
-    </Style>
-    <Style x:Key="DangerButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-        <Setter Property="Appearance" Value="Danger" />
-        <Setter Property="Padding" Value="18,8" />
-        <Setter Property="MinWidth" Value="112" />
     </Style>
     <Style x:Key="IconButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
         <Setter Property="Appearance" Value="Transparent" />
