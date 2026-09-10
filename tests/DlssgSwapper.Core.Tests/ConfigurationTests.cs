@@ -80,14 +80,14 @@ public class IniFileTests
 
 public class IniApplierTests
 {
-    private static string Template(string name) =>
-        Path.Combine(AppContext.BaseDirectory, "payloads", "templates", name);
+    private static string Template() =>
+        Path.Combine(AppContext.BaseDirectory, "payloads", "templates", "native-default.ini");
 
     [Fact]
-    public void Native_AppliesFiveKeysOnly()
+    public void Apply_WritesAllFiveKeys()
     {
-        var ini = IniFile.Load(Template("native-default.ini"));
-        IniApplier.Apply(ini, IniSchema.Native, new FrameGenSettings
+        var ini = IniFile.Load(Template());
+        IniApplier.Apply(ini, new FrameGenSettings
         {
             Router = "SM86",
             KernelImage = "Cubin",
@@ -105,41 +105,33 @@ public class IniApplierTests
     }
 
     [Fact]
-    public void Legacy_DoesNotEmitNativeOnlyKeys()
+    public void Apply_DoesNotEmitUnrelatedKeys()
     {
-        var ini = IniFile.Load(Template("legacy-default.ini"));
-        IniApplier.Apply(ini, IniSchema.Legacy, new FrameGenSettings
-        {
-            Enabled = 1,
-            KernelImage = "Auto",
-            MaxGeneratedFrames = 2,
-            LoggingLevel = 0,
-        });
+        var ini = IniFile.Load(Template());
+        IniApplier.Apply(ini, FrameGenSettings.Defaults());
 
         string rendered = ini.Render();
-        Assert.DoesNotContain("Router=", rendered);
-        Assert.DoesNotContain("HardwareBilinear=", rendered);
-        Assert.Contains("Enabled=1", rendered);
-        Assert.Contains("MaxGeneratedFrames=2", rendered);
-        Assert.Contains("Level=0", rendered);
+        Assert.DoesNotContain("Enabled=", rendered);
+        Assert.DoesNotContain("[General]", rendered);
+        Assert.DoesNotContain("[Runtime]", rendered);
     }
 
     [Theory]
-    [InlineData(IniSchema.Native, 5)]
-    [InlineData(IniSchema.Legacy, 16)]
-    public void OutOfRange_MaxGeneratedFrames_Throws(IniSchema schema, int value)
+    [InlineData(5)]
+    [InlineData(16)]
+    public void OutOfRange_MaxGeneratedFrames_Throws(int value)
     {
-        var ini = IniFile.Load(Template(schema == IniSchema.Native ? "native-default.ini" : "legacy-default.ini"));
-        var settings = FrameGenSettings.DefaultsFor(schema) with { MaxGeneratedFrames = value };
+        var ini = IniFile.Load(Template());
+        var settings = FrameGenSettings.Defaults() with { MaxGeneratedFrames = value };
 
-        var ex = Assert.Throws<ArgumentException>(() => IniApplier.Apply(ini, schema, settings));
+        var ex = Assert.Throws<ArgumentException>(() => IniApplier.Apply(ini, settings));
         Assert.Contains("MaxGeneratedFrames", ex.Message);
     }
 
     [Fact]
-    public void DefaultsFor_MatchesTemplateDefaults()
+    public void Defaults_MatchesTemplateDefaults()
     {
-        var settings = FrameGenSettings.DefaultsFor(IniSchema.Native);
+        var settings = FrameGenSettings.Defaults();
         Assert.Equal("SM86", settings.Router);
         Assert.Equal("PTX", settings.KernelImage);
         Assert.Equal(0, settings.HardwareBilinear);

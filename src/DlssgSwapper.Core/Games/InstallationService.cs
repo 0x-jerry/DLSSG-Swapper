@@ -26,7 +26,6 @@ public sealed record InstallInspection
     public FileOrigin ProxyOrigin { get; init; }
     public string? PresentProxyFile { get; init; }
     public bool IniPresent { get; init; }
-    public IniSchema? IniSchema { get; init; }
     public IReadOnlyList<string> Warnings { get; init; } = Array.Empty<string>();
 }
 
@@ -92,13 +91,11 @@ public sealed class InstallationService
 
         string iniPath = Path.Combine(gameDir, IniFileName);
         bool iniPresent = File.Exists(iniPath);
-        IniSchema? schema = null;
         if (iniPresent)
         {
             try
             {
-                var ini = IniFile.Load(iniPath);
-                schema = ini.Get("General", "Enabled") != null ? IniSchema.Legacy : IniSchema.Native;
+                IniFile.Load(iniPath);
             }
             catch (Exception)
             {
@@ -124,7 +121,6 @@ public sealed class InstallationService
             ProxyOrigin = origin,
             PresentProxyFile = presentProxy,
             IniPresent = iniPresent,
-            IniSchema = schema,
             Warnings = warnings,
         };
     }
@@ -158,7 +154,7 @@ public sealed class InstallationService
 
         string templatePath = _catalog.ResolveTemplatePath(version.Templates["default"]);
         var ini = IniFile.Load(templatePath);
-        IniApplier.Apply(ini, version.Schema, settings);
+        IniApplier.Apply(ini, settings);
         string iniPath = Path.Combine(gameDir, IniFileName);
         AssertFileWritable(iniPath);
         ini.Save(iniPath);

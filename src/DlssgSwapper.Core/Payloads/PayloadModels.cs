@@ -13,7 +13,6 @@ public sealed record PayloadEntryPoint(
 public sealed record PayloadVersion(
     string Version,
     string DisplayName,
-    Configuration.IniSchema Schema,
     string SourceRoot,
     IReadOnlyDictionary<string, string> Templates,
     IReadOnlyList<PayloadEntryPoint> EntryPoints)

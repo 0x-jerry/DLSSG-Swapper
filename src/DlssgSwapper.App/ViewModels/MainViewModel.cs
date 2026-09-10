@@ -125,7 +125,6 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(SelectedEntryPoint));
                 ApplySchemaDefaults();
             }
-            OnPropertyChanged(nameof(IsNative));
             RaiseCommandStates();
         }
     }
@@ -157,20 +156,17 @@ public sealed class MainViewModel : ObservableObject
     public bool HardwareBilinear { get => _hardwareBilinear; set => Set(ref _hardwareBilinear, value); }
     public bool OverwriteForeign { get => _overwriteForeign; set => Set(ref _overwriteForeign, value); }
 
-    public bool IsNative => _selectedVersion?.Schema == IniSchema.Native;
-
     public string GpuSummary { get => _gpuSummary; set => Set(ref _gpuSummary, value); }
     public string GpuRouterSuggestion { get => _gpuRouterSuggestion; set => Set(ref _gpuRouterSuggestion, value); }
     public string StatusText { get => _statusText; set => Set(ref _statusText, value); }
 
     private FrameGenSettings CurrentSettings => new()
     {
-        Router = IsNative ? _selectedRouter : null,
+        Router = _selectedRouter,
         KernelImage = _selectedKernelImage,
-        HardwareBilinear = IsNative ? (_hardwareBilinear ? 1 : 0) : null,
+        HardwareBilinear = _hardwareBilinear ? 1 : 0,
         MaxGeneratedFrames = _selectedMaxFrames,
         LoggingLevel = _selectedLoggingLevel,
-        Enabled = IsNative ? null : 1,
     };
 
     private void ReloadProfiles()
@@ -225,10 +221,9 @@ public sealed class MainViewModel : ObservableObject
 
     private void ApplySchemaDefaults()
     {
-        if (_selectedVersion == null) return;
-        var defaults = FrameGenSettings.DefaultsFor(_selectedVersion.Schema);
-        if (defaults.Router != null) SelectedRouter = defaults.Router;
-        if (defaults.KernelImage != null) SelectedKernelImage = defaults.KernelImage;
+        var defaults = FrameGenSettings.Defaults();
+        SelectedRouter = defaults.Router ?? SelectedRouter;
+        SelectedKernelImage = defaults.KernelImage ?? SelectedKernelImage;
         SelectedMaxFrames = defaults.MaxGeneratedFrames ?? SelectedMaxFrames;
         SelectedLoggingLevel = defaults.LoggingLevel ?? SelectedLoggingLevel;
         HardwareBilinear = defaults.HardwareBilinear == 1;
@@ -237,7 +232,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void ApplyPreset()
     {
-        if (_selectedPreset == Preset.Performance && IsNative)
+        if (_selectedPreset == Preset.Performance)
             HardwareBilinear = true;
     }
 
@@ -396,7 +391,7 @@ public sealed class MainViewModel : ObservableObject
             ? $"{info.Name}  ·  compute {info.ComputeCapability}  ·  driver {info.DriverVersion}"
             : "GPU not detected (nvidia-smi unavailable)";
         GpuRouterSuggestion = info.SuggestedRouter != null ? $"Suggested Router: {info.SuggestedRouter}" : "";
-        if (info.SuggestedRouter != null && IsNative)
+        if (info.SuggestedRouter != null)
             SelectedRouter = info.SuggestedRouter;
     }
 }

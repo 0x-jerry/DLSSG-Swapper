@@ -10,15 +10,15 @@ This tool does that for you and keeps track of what it changed.
 
 ## What it does
 
-- **Payload catalog** — knows every bundled payload (0.2.4 Native, 0.1.0 legacy)
-  and verifies each DLL against its SHA256 before use.
+- **Payload catalog** — knows the bundled 0.2.4 Native payload and
+  verifies each DLL against its SHA256 before use.
 - **Install / swap** — copies the chosen proxy + INI next to the game EXE.
   Swapping entry points (`version.dll`, `winmm.dll`, `dinput8.dll`,
   `winhttp.dll`, `dxgi.dll`) or versions removes the previously installed
   proxy so only one package proxy remains.
-- **Schema-aware INI** — writes the five native 0.2.4 keys (`Router`,
-  `KernelImage`, `HardwareBilinear`, `MaxGeneratedFrames`, `Logging.Level`) or
-  the legacy 0.1.0 keys, never mixing schemas.
+- **Schema-faithful INI** — writes the five native 0.2.4 keys (`Router`,
+  `KernelImage`, `HardwareBilinear`, `MaxGeneratedFrames`, `Logging.Level`)
+  into the bundled template, preserving comments and untouched keys.
 - **Safe backup/restore** — pre-existing files are backed up once per game;
   uninstall restores byte-identical originals. Foreign files (e.g. ReShade's
   `dxgi.dll`) are never overwritten without confirmation and are backed up
@@ -62,9 +62,8 @@ Update the submodule and `catalog.json` together when adopting a new version.
 1. Run the tool. It detects your GPU and shows the suggested Router.
 2. Add a game: **Add…** (browse to the rendering EXE) or **Steam…** (pick from
    the installed-game list, then its rendering executable).
-3. Choose **Version** (0.2.4 Native / 0.1.0 legacy), **Entry point**
-   (usually `version.dll`), **Preset** (Default / Performance), and the INI
-   settings.
+3. Choose **Entry point** (usually `version.dll`), **Preset** (Default /
+   Performance), and the INI settings.
 4. **Install / Swap**. If the chosen DLL name is held by another mod (foreign
    file), the tool asks for confirmation; tick **Allow overwriting foreign
    files** and retry.
@@ -77,8 +76,8 @@ Update the submodule and `catalog.json` together when adopting a new version.
 
 ```
 payloads/
-├── catalog.json              # versions, entry points, SHA256, schema, templates
-├── templates/                # INI templates (native + legacy)
+├── catalog.json              # versions, entry points, SHA256, templates
+├── templates/                # INI templates
 └── bin/<version>/…           # the proxy DLLs, copied at build time from the submodule
 ```
 

@@ -33,7 +33,7 @@ public class InstallationServiceTests : IDisposable
     private PayloadVersion Native => _catalog.GetVersion("0.2.4")!;
     private string InstalledIni => Path.Combine(_gameDir, InstallationService.IniFileName);
 
-    private FrameGenSettings NativeDefaults => FrameGenSettings.DefaultsFor(IniSchema.Native);
+    private FrameGenSettings NativeDefaults => FrameGenSettings.Defaults();
 
     [Fact]
     public void Install_WritesMatchingDllAndIni()
@@ -68,21 +68,6 @@ public class InstallationServiceTests : IDisposable
         Assert.False(File.Exists(Path.Combine(_gameDir, "winmm.dll")));
         Assert.False(File.Exists(InstalledIni));
         Assert.Equal(InstallKind.NotInstalled, _service.Inspect(_profile).Kind);
-    }
-
-    [Fact]
-    public void SwapToLegacy_WritesLegacyIniSchema()
-    {
-        var nativeEntry = Native.FindEntryPoint("version.dll")!;
-        var legacyEntry = _catalog.GetVersion("0.1.0")!.FindEntryPoint("version.dll")!;
-        _service.Install(_profile, Native, nativeEntry, NativeDefaults);
-        _service.Install(_profile, _catalog.GetVersion("0.1.0")!, legacyEntry, FrameGenSettings.DefaultsFor(IniSchema.Legacy));
-
-        var ini = IniFile.Load(InstalledIni);
-        Assert.Equal("1", ini.Get("General", "Enabled"));
-        Assert.Null(ini.Get("Compatibility", "Router"));
-        Assert.Equal("Auto", ini.Get("Compatibility", "KernelImage"));
-        Assert.Equal(IniSchema.Legacy, _service.Inspect(_profile).IniSchema);
     }
 
     [Fact]

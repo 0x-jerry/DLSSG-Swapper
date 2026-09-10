@@ -16,7 +16,6 @@
     <Content Include="$(SubmoduleRoot)altnative\dinput8.dll" Link="payloads\bin\0.2.4\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)altnative\dinput8.dll')" />
     <Content Include="$(SubmoduleRoot)altnative\winhttp.dll" Link="payloads\bin\0.2.4\winhttp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)altnative\winhttp.dll')" />
     <Content Include="$(SubmoduleRoot)altnative\dxgi.dll" Link="payloads\bin\0.2.4\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)altnative\dxgi.dll')" />
-    <Content Include="$(SubmoduleRoot)archive\version.dll" Link="payloads\bin\0.1.0\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)archive\version.dll')" />
   </ItemGroup>
 
 </Project>

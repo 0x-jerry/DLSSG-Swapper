@@ -100,14 +100,12 @@
                         <ComboBox Grid.Row="1" Grid.Column="3"
                                   ItemsSource="{Binding Routers}"
                                   SelectedItem="{Binding SelectedRouter}"
-                                  IsEnabled="{Binding IsNative}" Margin="0,0,0,6" />
-
+                                  Margin="0,0,0,6" />
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Kernel image" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <ComboBox Grid.Row="2" Grid.Column="1"
                                   ItemsSource="{Binding KernelImages}"
                                   SelectedItem="{Binding SelectedKernelImage}"
-                                  IsEnabled="{Binding IsNative}" Margin="0,0,12,0" />
-                    </Grid>
+                                  Margin="0,0,12,0" />                    </Grid>
                 </GroupBox>
 
                 <GroupBox Header="Frame generation settings" Padding="8" Margin="0,0,0,10">
@@ -135,8 +133,7 @@
                         <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                   Content="Approximate sampling (HardwareBilinear=1)"
                                   IsChecked="{Binding HardwareBilinear}"
-                                  IsEnabled="{Binding IsNative}" VerticalAlignment="Center" Margin="0,0,12,0" />
-                        <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                                  VerticalAlignment="Center" Margin="0,0,12,0" />                        <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
                                   Content="Allow overwriting foreign files (backed up)"
                                   IsChecked="{Binding OverwriteForeign}" VerticalAlignment="Center" />
                     </Grid>

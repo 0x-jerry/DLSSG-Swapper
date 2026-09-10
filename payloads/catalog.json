@@ -4,7 +4,6 @@
     {
       "version": "0.2.4",
       "displayName": "Native 0.2.4",
-      "iniSchema": "native",
       "sourceRoot": "external/dlssg_for_sm86",
       "templates": {
         "default": "templates/native-default.ini",
@@ -41,24 +40,6 @@
           "source": "altnative/dxgi.dll",
           "sha256": "8d29eddbd7f1c3e272d07f94ab8812a80ef5b7aeb73923320bf9a432ddcf74c0",
           "note": "Can conflict with ReShade"
-        }
-      ]
-    },
-    {
-      "version": "0.1.0",
-      "displayName": "Release 0.1.0 (legacy)",
-      "iniSchema": "legacy",
-      "sourceRoot": "external/dlssg_for_sm86/archive",
-      "templates": {
-        "default": "templates/legacy-default.ini"
-      },
-      "entryPoints": [
-        {
-          "file": "version.dll",
-          "source": "version.dll",
-          "sha256": "03d445237d519ac48cd9226278a0f07aecd7ac597697697eb64404e1d51b3c5a",
-          "recommended": true,
-          "note": "Only entry point for 0.1.0"
         }
       ]
     }

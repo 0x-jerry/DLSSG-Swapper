@@ -1,5 +1,4 @@
 using System.Text.Json;
-using DlssgSwapper.Core.Configuration;
 
 namespace DlssgSwapper.Core.Payloads;
 
@@ -75,24 +74,14 @@ public sealed class PayloadCatalog
         return catalog;
     }
 
-    private static PayloadVersion ToVersion(VersionDto dto)
-    {
-        IniSchema schema = dto.IniSchema switch
-        {
-            "native" => IniSchema.Native,
-            "legacy" => IniSchema.Legacy,
-            _ => throw new PayloadValidationException($"Unknown iniSchema \"{dto.IniSchema}\" for payload version {dto.Version}"),
-        };
-        return new PayloadVersion(
-            dto.Version,
-            dto.DisplayName,
-            schema,
-            dto.SourceRoot,
-            dto.Templates,
-            dto.EntryPoints
-                .Select(e => new PayloadEntryPoint(e.File, e.Source, e.Sha256, e.Recommended, e.Note))
-                .ToList());
-    }
+    private static PayloadVersion ToVersion(VersionDto dto) => new(
+        dto.Version,
+        dto.DisplayName,
+        dto.SourceRoot,
+        dto.Templates,
+        dto.EntryPoints
+            .Select(e => new PayloadEntryPoint(e.File, e.Source, e.Sha256, e.Recommended, e.Note))
+            .ToList());
 
     private void VerifyPayload(PayloadVersion version, PayloadEntryPoint entryPoint)
     {
@@ -116,7 +105,6 @@ public sealed class PayloadCatalog
     {
         public string Version { get; set; } = "";
         public string DisplayName { get; set; } = "";
-        public string IniSchema { get; set; } = "native";
         public string SourceRoot { get; set; } = "";
         public Dictionary<string, string> Templates { get; set; } = new();
         public List<EntryPointDto> EntryPoints { get; set; } = new();

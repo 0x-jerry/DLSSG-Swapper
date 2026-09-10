@@ -1,4 +1,3 @@
-using DlssgSwapper.Core.Configuration;
 using DlssgSwapper.Core.Payloads;
 
 namespace DlssgSwapper.Core.Tests;
@@ -8,23 +7,16 @@ public class PayloadCatalogTests
     private static string PayloadRoot => Path.Combine(AppContext.BaseDirectory, "payloads");
 
     [Fact]
-    public void Load_ReturnsBothVersionsWithExpectedEntryPoints()
+    public void Load_ReturnsSingleVersionWithAllEntryPoints()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
 
-        Assert.Equal(2, catalog.Versions.Count);
-
+        Assert.Single(catalog.Versions);
         var native = catalog.GetVersion("0.2.4");
         Assert.NotNull(native);
-        Assert.Equal(IniSchema.Native, native.Schema);
         Assert.Equal(5, native.EntryPoints.Count);
         Assert.Equal("version.dll", native.EntryPoints.First(e => e.Recommended).FileName);
-
-        var legacy = catalog.GetVersion("0.1.0");
-        Assert.NotNull(legacy);
-        Assert.Equal(IniSchema.Legacy, legacy.Schema);
-        var entry = Assert.Single(legacy.EntryPoints);
-        Assert.Equal("version.dll", entry.FileName);
+        Assert.Null(catalog.GetVersion("0.1.0"));
     }
 
     [Fact]
