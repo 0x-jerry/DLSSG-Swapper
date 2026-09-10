@@ -4,8 +4,10 @@ A Windows desktop manager for the [dlssg_for_sm86](https://github.com/sdli1995/d
 DLSS Frame Generation mod: install, swap between payload versions and proxy
 entry points, edit the mod's INI, back up originals, and uninstall cleanly.
 
-The UI follows the Windows 11 Fluent design (WPF-UI): Mica window backdrop,
-rounded corners and automatic light/dark mode from the system theme.
+The UI is a Windows 11 Fluent shell (WPF-UI) with a left navigation pane
+(**Games / Install / Settings / About**), Mica window backdrop, rounded corners
+and light/dark theming that follows the system by default (overridable on the
+Settings page).
 
 The mod ships as a proxy DLL plus a `dlssg_sm86.ini` that must be placed next
 to the game's actual rendering executable (e.g. `b1-Win64-Shipping.exe`).

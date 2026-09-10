@@ -3,55 +3,109 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Add game from Steam"
-        Height="560" Width="880"
+        Height="620" Width="920"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica"
         WindowCornerPreference="Round">
-    <Grid Margin="12">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock x:Name="StatusText" Text="Scanning Steam libraries…" VerticalAlignment="Center" TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            <ui:Button Content="Rescan" Click="OnRescan" Margin="12,0,0,0" Padding="10,3" />
-        </StackPanel>
+        <ui:TitleBar Grid.Row="0" Title="Add game from Steam" />
 
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="1" Margin="24,18,24,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <DockPanel Grid.Column="0" Margin="0,0,8,0">
-                <TextBlock DockPanel.Dock="Top" Text="Games" FontWeight="SemiBold" Margin="0,0,0,4" />
-                <ui:ListView x:Name="GamesList" SelectionChanged="OnGameSelected"
-                            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ui:ListView.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="4,1">
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding InstallDir}" FontSize="11" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ui:ListView.ItemTemplate>
-                </ui:ListView>
-            </DockPanel>
+            <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                <TextBlock Text="Add from Steam" Style="{StaticResource PageTitleText}" />
+                <TextBlock Style="{StaticResource PageSubtitleText}" Margin="0,3,0,0"
+                           Text="Pick an installed game, then the executable that loads DLSS." />
+            </StackPanel>
 
-            <DockPanel Grid.Column="1">
-                <TextBlock DockPanel.Dock="Top" Text="Candidate rendering executables" FontWeight="SemiBold" Margin="0,0,0,4" />
-                <ui:ListView x:Name="ExesList" SelectionChanged="OnExeSelected" DisplayMemberPath="Path"
-                            ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
-            </DockPanel>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <DockPanel Grid.Column="0">
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="Games" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" />
+                        <ui:Button Content="Rescan" Click="OnRescan" Style="{StaticResource ToolbarButton}"
+                                   HorizontalAlignment="Right">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="ArrowSync24" />
+                            </ui:Button.Icon>
+                        </ui:Button>
+                    </Grid>
+                    <Border Style="{StaticResource CardPanel}" Margin="0">
+                        <ui:ListView x:Name="GamesList" SelectionChanged="OnGameSelected"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     Background="Transparent" BorderThickness="0" Padding="0">
+                            <ui:ListView.ItemContainerStyle>
+                                <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="6,4" />
+                                </Style>
+                            </ui:ListView.ItemContainerStyle>
+                            <ui:ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2,1">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding InstallDir}" Style="{StaticResource CaptionText}"
+                                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ui:ListView.ItemTemplate>
+                        </ui:ListView>
+                    </Border>
+                </DockPanel>
+
+                <DockPanel Grid.Column="2">
+                    <TextBlock DockPanel.Dock="Top" Text="Rendering executable"
+                               Style="{StaticResource SectionTitleText}" Margin="0,0,0,8" />
+                    <Border Style="{StaticResource CardPanel}" Margin="0">
+                        <ui:ListView x:Name="ExesList" SelectionChanged="OnExeSelected"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     Background="Transparent" BorderThickness="0" Padding="0">
+                            <ui:ListView.ItemContainerStyle>
+                                <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="6,4" />
+                                </Style>
+                            </ui:ListView.ItemContainerStyle>
+                            <ui:ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ui:ListView.ItemTemplate>
+                        </ui:ListView>
+                    </Border>
+                </DockPanel>
+            </Grid>
+
+            <TextBlock x:Name="StatusText" Grid.Row="2" Text="Scanning Steam libraries…"
+                       Style="{StaticResource CaptionText}" Margin="0,12,0,0" VerticalAlignment="Center" />
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                <ui:Button x:Name="OkButton" Content="Add game" Click="OnOk" IsEnabled="False"
+                           Appearance="Primary" IsDefault="True" Padding="18,8" FontWeight="SemiBold"
+                           MinWidth="120" Margin="0,0,8,0" />
+                <ui:Button Content="Cancel" Click="OnCancel" IsCancel="True" Padding="18,8" MinWidth="96" />
+            </StackPanel>
         </Grid>
-
-        <UniformGrid Grid.Row="2" Rows="1" Columns="2" Width="220" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <ui:Button x:Name="OkButton" Content="Add" Click="OnOk" IsEnabled="False" Margin="0,0,6,0" Padding="12,4" Appearance="Primary" IsDefault="True" />
-            <ui:Button Content="Cancel" Click="OnCancel" Padding="12,4" IsCancel="True" />
-        </UniformGrid>
     </Grid>
 </ui:FluentWindow>

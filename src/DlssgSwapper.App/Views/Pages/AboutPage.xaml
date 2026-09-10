@@ -1,0 +1,46 @@
+<Page x:Class="DlssgSwapper.App.Views.Pages.AboutPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      Title="About">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="{StaticResource PagePadding}">
+        <StackPanel MaxWidth="720" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                <Border Width="64" Height="64" CornerRadius="16" Background="{StaticResource BrandMarkBrush}">
+                    <ui:SymbolIcon Symbol="ArrowSwap24" FontSize="30" Foreground="{StaticResource BrandOnMarkBrush}" />
+                </Border>
+                <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="DLSSG Swapper" Style="{StaticResource PageTitleText}" />
+                    <TextBlock Style="{StaticResource PageSubtitleText}" Margin="0,2,0,0">
+                        <Run Text="Version" />
+                        <Run Text="{Binding AppVersion, Mode=OneWay}" />
+                        <Run Text="· a manager for the dlssg_for_sm86 DLSS Frame Generation mod" />
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+
+            <Border Style="{StaticResource CardPanel}">
+                <StackPanel>
+                    <TextBlock Text="This machine" Style="{StaticResource SectionTitleText}" Margin="0,0,0,8" />
+                    <TextBlock Text="{Binding GpuSummary}" Style="{StaticResource CaptionText}" />
+                    <TextBlock Text="{Binding GpuRouterSuggestion}" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardPanel}">
+                <StackPanel>
+                    <TextBlock Text="Links" Style="{StaticResource SectionTitleText}" Margin="0,0,0,10" />
+                    <ui:HyperlinkButton Content="dlssg_for_sm86 — upstream mod"
+                                        NavigateUri="https://github.com/sdli1995/dlssg_for_sm86" Margin="0,0,0,6" />
+                    <ui:HyperlinkButton Content="WPF-UI — UI framework (MIT)"
+                                        NavigateUri="https://github.com/lepoco/wpfui" Margin="0,0,0,6" />
+                    <ui:HyperlinkButton Content=".NET 9 Desktop Runtime"
+                                        NavigateUri="https://dotnet.microsoft.com/download/dotnet/9.0" />
+                </StackPanel>
+            </Border>
+
+            <ui:InfoBar IsOpen="True" Severity="Warning" IsClosable="False" Title="Use at your own risk"
+                        Message="The bundled proxy DLLs use system-DLL proxying and LoadLibrary hooks, so antivirus and SmartScreen may flag them. Do not install into online or anti-cheat-enabled games unless you accept the risk. Only one package proxy may be installed per game." />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

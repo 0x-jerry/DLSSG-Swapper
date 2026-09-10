@@ -1,0 +1,118 @@
+<Page x:Class="DlssgSwapper.App.Views.Pages.GamesPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      Title="Games">
+    <Grid Margin="{StaticResource PagePadding}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <StackPanel HorizontalAlignment="Left" MaxWidth="620">
+                <TextBlock Text="Library" Style="{StaticResource PageTitleText}" />
+                <TextBlock Style="{StaticResource PageSubtitleText}" Margin="0,3,0,0"
+                           Text="Games managed by this tool. Select one to configure its proxy, then install or swap it." />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <ui:Button Content="Add game" Command="{Binding AddGameCommand}" Style="{StaticResource ToolbarButton}" Margin="0,0,8,0">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="Add24" />
+                    </ui:Button.Icon>
+                </ui:Button>
+                <ui:Button Content="From Steam" Command="{Binding ScanSteamCommand}" Style="{StaticResource ToolbarButton}" Margin="0,0,8,0">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="Games24" />
+                    </ui:Button.Icon>
+                </ui:Button>
+                <ui:Button Command="{Binding RemoveGameCommand}" Style="{StaticResource IconButton}"
+                           ToolTip="Remove selected game" AutomationProperties.Name="Remove selected game">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="Delete24" />
+                    </ui:Button.Icon>
+                </ui:Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <ui:ListView x:Name="ProfilesList"
+                         ItemsSource="{Binding Profiles}"
+                         SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                         MouseDoubleClick="OnRowDoubleClick"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Background="Transparent"
+                         BorderThickness="0">
+                <ui:ListView.ItemContainerStyle>
+                    <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                    </Style>
+                </ui:ListView.ItemContainerStyle>
+                <ui:ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource CardPanel}" Margin="0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Width="40" Height="40" CornerRadius="10"
+                                        Background="{StaticResource BrandSoftBrush}"
+                                        VerticalAlignment="Center" Margin="0,0,14,0">
+                                    <ui:SymbolIcon Symbol="Games24" FontSize="20" Foreground="{StaticResource BrandBrush}" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding ExecutablePath}" Style="{StaticResource CaptionText}"
+                                               Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Style="{StaticResource InstallStatePill}">
+                                        <TextBlock Text="{Binding InstallState}" FontSize="12"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    </Border>
+                                    <ui:Button Content="Configure" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0"
+                                               Command="{Binding DataContext.ConfigureGameCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ui:ListView.ItemTemplate>
+            </ui:ListView>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasItems, ElementName=ProfilesList}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <Border Width="72" Height="72" CornerRadius="18" HorizontalAlignment="Center"
+                        Background="{StaticResource BrandSoftBrush}">
+                    <ui:SymbolIcon Symbol="Games24" FontSize="34" Foreground="{StaticResource BrandBrush}" />
+                </Border>
+                <TextBlock Text="No games yet" Style="{StaticResource SectionTitleText}"
+                           HorizontalAlignment="Center" Margin="0,16,0,0" />
+                <TextBlock Style="{StaticResource CaptionText}" TextAlignment="Center" Margin="0,6,0,18"
+                           Text="Add the game's rendering executable, or pick it from your Steam library. Nothing is changed until you install." />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <ui:Button Content="Add game" Command="{Binding AddGameCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
+                    <ui:Button Content="From Steam" Command="{Binding ScanSteamCommand}" Style="{StaticResource ToolbarButton}" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

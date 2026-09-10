@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using DlssgSwapper.App.Configuration;
 using DlssgSwapper.App.Mvvm;
 using DlssgSwapper.App.Views;
 using DlssgSwapper.Core.Configuration;
@@ -9,6 +11,10 @@ using DlssgSwapper.Core.Games;
 using DlssgSwapper.Core.Hardware;
 using DlssgSwapper.Core.Payloads;
 using Microsoft.Win32;
+using Wpf.Ui.Controls;
+using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxResult = System.Windows.MessageBoxResult;
 
 namespace DlssgSwapper.App.ViewModels;
 
@@ -16,6 +22,14 @@ public enum Preset
 {
     Default,
     Performance,
+}
+
+public enum AppSection
+{
+    Games,
+    Install,
+    Settings,
+    About,
 }
 
 public sealed class GameProfileViewModel
@@ -31,12 +45,20 @@ public sealed class GameProfileViewModel
 
     public string Name => Profile.Name;
     public string ExecutablePath => Profile.ExecutablePath;
+    public string ExecutableDirectory => Path.GetDirectoryName(Profile.ExecutablePath) ?? "";
     public string SourceName => Profile.Source == GameSource.Steam ? "Steam" : "Manual";
+
+    public string InstallState => Inspection.Kind switch
+    {
+        InstallKind.Installed => "Installed",
+        InstallKind.Partial => "Partial",
+        _ => "Not installed",
+    };
 
     public string InstallSummary => Inspection.Kind switch
     {
         InstallKind.Installed =>
-            $"Installed: {Inspection.InstalledVersion?.Version ?? "?"} via {Inspection.InstalledEntryPoint?.FileName ?? "?"}",
+            $"Installed {Inspection.InstalledVersion?.Version ?? "?"} via {Inspection.InstalledEntryPoint?.FileName ?? "?"}",
         InstallKind.Partial => "Partial install (proxy or INI missing)",
         _ => "Not installed",
     };
@@ -47,6 +69,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly ProfileStore _store = ProfileStore.OpenDefault();
     private readonly PayloadCatalog _catalog;
     private readonly InstallationService _service;
+    private readonly AppSettings _settings = AppSettings.Load();
 
     private GameProfileViewModel? _selectedProfile;
     private PayloadVersion? _selectedVersion;
@@ -61,11 +84,14 @@ public sealed class MainViewModel : ObservableObject
     private string _gpuSummary = "Detecting GPU…";
     private string _gpuRouterSuggestion = "";
     private string _statusText = "Add or select a game to begin.";
+    private InfoBarSeverity _statusSeverity = InfoBarSeverity.Informational;
+    private bool _isStatusVisible;
 
     public MainViewModel()
     {
         _catalog = PayloadCatalog.Load(Path.Combine(AppContext.BaseDirectory, "payloads"));
         _service = new InstallationService(_catalog);
+        _overwriteForeign = _settings.DefaultOverwriteForeign;
 
         Versions = new ObservableCollection<PayloadVersion>(_catalog.Versions);
         Routers = new ObservableCollection<string> { "SM86", "SM75" };
@@ -77,6 +103,11 @@ public sealed class MainViewModel : ObservableObject
         AddGameCommand = new RelayCommand(AddGame);
         ScanSteamCommand = new RelayCommand(ScanSteam);
         RemoveGameCommand = new RelayCommand(RemoveGame, () => SelectedProfile != null);
+        ConfigureGameCommand = new RelayCommand<GameProfileViewModel>(ConfigureGame);
+        ShowGamesCommand = new RelayCommand(() => NavigationRequested?.Invoke(AppSection.Games));
+        CopyStatusCommand = new RelayCommand(CopyStatus);
+        OpenGameFolderCommand = new RelayCommand(OpenGameFolder, () => SelectedProfile != null);
+        OpenBackupFolderCommand = new RelayCommand(() => OpenFolder(BackupRoot));
         InstallCommand = new RelayCommand(Install, () => SelectedProfile != null && SelectedEntryPoint != null);
         UninstallCommand = new RelayCommand(Uninstall, () => SelectedProfile != null);
         VerifyCommand = new RelayCommand(Verify, () => SelectedProfile != null);
@@ -84,6 +115,8 @@ public sealed class MainViewModel : ObservableObject
         ReloadProfiles();
         _ = LoadGpuAsync();
     }
+
+    public event Action<AppSection>? NavigationRequested;
 
     public ObservableCollection<GameProfileViewModel> Profiles { get; } = new();
     public ObservableCollection<PayloadVersion> Versions { get; }
@@ -96,9 +129,23 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand AddGameCommand { get; }
     public RelayCommand ScanSteamCommand { get; }
     public RelayCommand RemoveGameCommand { get; }
+    public RelayCommand<GameProfileViewModel> ConfigureGameCommand { get; }
+    public RelayCommand ShowGamesCommand { get; }
+    public RelayCommand CopyStatusCommand { get; }
+    public RelayCommand OpenGameFolderCommand { get; }
+    public RelayCommand OpenBackupFolderCommand { get; }
     public RelayCommand InstallCommand { get; }
     public RelayCommand UninstallCommand { get; }
     public RelayCommand VerifyCommand { get; }
+
+    public static string BackupRoot { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "DlssgSwapper", "backups");
+
+    public string AppVersion { get; } =
+        typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+
+    public IReadOnlyList<AppTheme> ThemeOptions { get; } = Enum.GetValues<AppTheme>();
 
     public GameProfileViewModel? SelectedProfile
     {
@@ -106,10 +153,13 @@ public sealed class MainViewModel : ObservableObject
         set
         {
             if (!Set(ref _selectedProfile, value)) return;
+            OnPropertyChanged(nameof(HasSelectedProfile));
             OnSelectionChanged();
             RaiseCommandStates();
         }
     }
+
+    public bool HasSelectedProfile => _selectedProfile != null;
 
     public PayloadVersion? SelectedVersion
     {
@@ -158,7 +208,43 @@ public sealed class MainViewModel : ObservableObject
 
     public string GpuSummary { get => _gpuSummary; set => Set(ref _gpuSummary, value); }
     public string GpuRouterSuggestion { get => _gpuRouterSuggestion; set => Set(ref _gpuRouterSuggestion, value); }
-    public string StatusText { get => _statusText; set => Set(ref _statusText, value); }
+
+    public string StatusText
+    {
+        get => _statusText;
+        set
+        {
+            if (Set(ref _statusText, value)) OnPropertyChanged(nameof(StatusHeadline));
+        }
+    }
+
+    public string StatusHeadline => _statusText.Split('\n')[0];
+    public InfoBarSeverity StatusSeverity { get => _statusSeverity; private set => Set(ref _statusSeverity, value); }
+    public bool IsStatusVisible { get => _isStatusVisible; private set => Set(ref _isStatusVisible, value); }
+
+    public AppTheme SelectedTheme
+    {
+        get => _settings.Theme;
+        set
+        {
+            if (_settings.Theme == value) return;
+            _settings.Theme = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
+    public bool DefaultOverwriteForeign
+    {
+        get => _settings.DefaultOverwriteForeign;
+        set
+        {
+            if (_settings.DefaultOverwriteForeign == value) return;
+            _settings.DefaultOverwriteForeign = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
 
     private FrameGenSettings CurrentSettings => new()
     {
@@ -236,6 +322,25 @@ public sealed class MainViewModel : ObservableObject
             HardwareBilinear = true;
     }
 
+    private void ConfigureGame(GameProfileViewModel? profile)
+    {
+        if (profile != null) SelectedProfile = profile;
+        if (_selectedProfile == null) return;
+        NavigationRequested?.Invoke(AppSection.Install);
+    }
+
+    private void CopyStatus()
+    {
+        try
+        {
+            Clipboard.SetText(StatusText);
+        }
+        catch (Exception)
+        {
+            // Clipboard can be locked by another process; copying is best-effort.
+        }
+    }
+
     private void AddGame()
     {
         var dialog = new OpenFileDialog
@@ -250,7 +355,7 @@ public sealed class MainViewModel : ObservableObject
             dialog.FileName,
             GameSource.Manual);
         _store.Add(profile);
-        StatusText = $"Added {profile.Name}.";
+        SetStatus($"Added {profile.Name}.", InfoBarSeverity.Success);
         ReloadProfiles();
         SelectedProfile = Profiles.Last();
     }
@@ -264,7 +369,7 @@ public sealed class MainViewModel : ObservableObject
 
         var profile = GameProfile.Create(gameName, dialog.SelectedExe, GameSource.Steam);
         _store.Add(profile);
-        StatusText = $"Added Steam game {profile.Name}.";
+        SetStatus($"Added Steam game {profile.Name}.", InfoBarSeverity.Success);
         ReloadProfiles();
         SelectedProfile = Profiles.Last();
     }
@@ -288,9 +393,11 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception e)
         {
-            StatusText = $"Removed profile but could not delete its backups: {e.Message}";
+            SetStatus($"Removed profile but could not delete its backups: {e.Message}", InfoBarSeverity.Warning);
+            ReloadProfiles();
+            return;
         }
-        StatusText = $"Removed {item.Name}.";
+        SetStatus($"Removed {item.Name}.", InfoBarSeverity.Success);
         ReloadProfiles();
     }
 
@@ -308,13 +415,15 @@ public sealed class MainViewModel : ObservableObject
                 PayloadVersion = _selectedVersion.Version,
                 PayloadEntryPoint = _selectedEntryPoint.FileName,
             });
-            StatusText = $"Installed {_selectedVersion.Version} via {_selectedEntryPoint.FileName} into " +
-                         $"{Path.GetDirectoryName(item.ExecutablePath)}.";
-            if (warnings.Count > 0) StatusText += Environment.NewLine + string.Join(Environment.NewLine, warnings);
+            string message = $"Installed {_selectedVersion.Version} via {_selectedEntryPoint.FileName} into " +
+                             $"{Path.GetDirectoryName(item.ExecutablePath)}.";
+            if (warnings.Count > 0) message += Environment.NewLine + string.Join(Environment.NewLine, warnings);
+            SetStatus(message, warnings.Count > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
             RefreshSelected();
         }
         catch (Exception e)
         {
+            SetStatus(e.Message, InfoBarSeverity.Error);
             MessageBox.Show(e.Message, "Install failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -327,12 +436,14 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             var warnings = _service.Uninstall(item.Profile);
-            StatusText = $"Uninstalled from {Path.GetDirectoryName(item.ExecutablePath)}.";
-            if (warnings.Count > 0) StatusText += Environment.NewLine + string.Join(Environment.NewLine, warnings);
+            string message = $"Uninstalled from {Path.GetDirectoryName(item.ExecutablePath)}.";
+            if (warnings.Count > 0) message += Environment.NewLine + string.Join(Environment.NewLine, warnings);
+            SetStatus(message, warnings.Count > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
             RefreshSelected();
         }
         catch (Exception e)
         {
+            SetStatus(e.Message, InfoBarSeverity.Error);
             MessageBox.Show(e.Message, "Uninstall failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -371,7 +482,35 @@ public sealed class MainViewModel : ObservableObject
         {
             Profiles[index] = new GameProfileViewModel(fresh, SafeInspect(fresh));
             _selectedProfile = Profiles[index];
+            OnPropertyChanged(nameof(SelectedProfile));
         }
+    }
+
+    private void OpenGameFolder()
+    {
+        var item = _selectedProfile;
+        if (item == null) return;
+        OpenFolder(item.ExecutableDirectory);
+    }
+
+    private static void OpenFolder(string path)
+    {
+        try
+        {
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+        }
+        catch (Exception)
+        {
+            // Opening Explorer is a convenience; failure is not worth an error dialog.
+        }
+    }
+
+    private void SetStatus(string text, InfoBarSeverity severity)
+    {
+        StatusText = text;
+        StatusSeverity = severity;
+        IsStatusVisible = true;
     }
 
     private void RaiseCommandStates()
@@ -379,6 +518,8 @@ public sealed class MainViewModel : ObservableObject
         AddGameCommand.RaiseCanExecuteChanged();
         ScanSteamCommand.RaiseCanExecuteChanged();
         RemoveGameCommand.RaiseCanExecuteChanged();
+        ConfigureGameCommand.RaiseCanExecuteChanged();
+        OpenGameFolderCommand.RaiseCanExecuteChanged();
         InstallCommand.RaiseCanExecuteChanged();
         UninstallCommand.RaiseCanExecuteChanged();
         VerifyCommand.RaiseCanExecuteChanged();

@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using DlssgSwapper.Core.Steam;
-using Wpf.Ui.Appearance;
 
 namespace DlssgSwapper.App.Views;
 
@@ -16,7 +15,6 @@ public partial class SteamScanWindow
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        SystemThemeWatcher.Watch(this, Wpf.Ui.Controls.WindowBackdropType.None);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e) => await ScanAsync();
