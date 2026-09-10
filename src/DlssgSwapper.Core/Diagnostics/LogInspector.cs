@@ -72,18 +72,20 @@ public static class LogInspector
 
     private static IEnumerable<JsonElement> JsonLines(string path)
     {
-        foreach (string? line in File.ReadLines(path))
+        foreach (var line in File.ReadLines(path))
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
+            JsonElement element;
             try
             {
                 using var doc = JsonDocument.Parse(line);
-                yield return doc.RootElement.Clone();
+                element = doc.RootElement.Clone();
             }
             catch (JsonException)
             {
-                // Skip malformed lines; the file may be mid-write.
+                continue; // skip malformed lines; the file may be mid-write
             }
+            yield return element;
         }
     }
 }
