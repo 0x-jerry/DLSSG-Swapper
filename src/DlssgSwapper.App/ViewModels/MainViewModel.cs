@@ -11,9 +11,6 @@ using DlssgSwapper.Core.Games;
 using DlssgSwapper.Core.Hardware;
 using DlssgSwapper.Core.Payloads;
 using Microsoft.Win32;
-using MessageBox = System.Windows.MessageBox;
-using MessageBoxButton = System.Windows.MessageBoxButton;
-using MessageBoxResult = System.Windows.MessageBoxResult;
 
 namespace DlssgSwapper.App.ViewModels;
 
@@ -109,7 +106,7 @@ public sealed class MainViewModel : ObservableObject
 
         AddGameCommand = new RelayCommand(AddGame);
         ScanSteamCommand = new RelayCommand(ScanSteam);
-        RemoveGameCommand = new RelayCommand(RemoveGame, () => SelectedProfile != null);
+        RemoveGameCommand = new AsyncRelayCommand<GameProfileViewModel>(RemoveGame);
         ConfigureGameCommand = new RelayCommand<GameProfileViewModel>(ConfigureGame);
         ShowGamesCommand = new RelayCommand(() => NavigationRequested?.Invoke(AppSection.Games));
         CopyStatusCommand = new RelayCommand(CopyStatus);
@@ -133,7 +130,7 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand AddGameCommand { get; }
     public RelayCommand ScanSteamCommand { get; }
-    public RelayCommand RemoveGameCommand { get; }
+    public AsyncRelayCommand<GameProfileViewModel> RemoveGameCommand { get; }
     public RelayCommand<GameProfileViewModel> ConfigureGameCommand { get; }
     public RelayCommand ShowGamesCommand { get; }
     public RelayCommand CopyStatusCommand { get; }
@@ -386,16 +383,17 @@ public sealed class MainViewModel : ObservableObject
         SelectedProfile = Profiles.Last();
     }
 
-    private void RemoveGame()
+    private async Task RemoveGame(GameProfileViewModel? item)
     {
-        var item = _selectedProfile;
         if (item == null) return;
 
-        var result = MessageBox.Show(
-            $"Remove \"{item.Name}\"?\n\nFiles already installed in the game directory are left unchanged; " +
-            "use Uninstall first to restore original files. The saved backups for this game will be deleted.",
-            "Remove game", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (result != MessageBoxResult.Yes) return;
+        bool confirmed = await Dialogs.ConfirmDestructiveAsync(
+            "Remove game",
+            $"“{item.Name}” will be removed from the library.\n\n" +
+            "Files already installed in the game directory are left unchanged; use Uninstall first to restore the originals. " +
+            "The saved backups for this game will be deleted.",
+            "Remove");
+        if (!confirmed) return;
 
         _store.Remove(item.Profile.Id);
         try
@@ -436,7 +434,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception e)
         {
             SetStatus(e.Message);
-            MessageBox.Show(e.Message, "Install failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            Dialogs.Error("Install failed", e.Message);
         }
     }
 
@@ -456,7 +454,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception e)
         {
             SetStatus(e.Message);
-            MessageBox.Show(e.Message, "Uninstall failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            Dialogs.Error("Uninstall failed", e.Message);
         }
     }
 

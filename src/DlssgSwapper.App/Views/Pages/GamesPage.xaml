@@ -21,15 +21,9 @@
                         <ui:SymbolIcon Symbol="Add24" />
                     </ui:Button.Icon>
                 </ui:Button>
-                <ui:Button Content="From Steam" Command="{Binding ScanSteamCommand}" Style="{StaticResource ToolbarButton}" Margin="0,0,8,0">
+                <ui:Button Content="From Steam" Command="{Binding ScanSteamCommand}" Style="{StaticResource ToolbarButton}">
                     <ui:Button.Icon>
                         <ui:SymbolIcon Symbol="Games24" />
-                    </ui:Button.Icon>
-                </ui:Button>
-                <ui:Button Command="{Binding RemoveGameCommand}" Style="{StaticResource IconButton}"
-                           ToolTip="Remove selected game" AutomationProperties.Name="Remove selected game">
-                    <ui:Button.Icon>
-                        <ui:SymbolIcon Symbol="Delete24" />
                     </ui:Button.Icon>
                 </ui:Button>
             </StackPanel>
@@ -79,9 +73,17 @@
                                         <TextBlock Text="{Binding InstallState}" FontSize="12"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                     </Border>
-                                    <ui:Button Content="Configure" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0"
+                                    <ui:Button Content="Configure" Style="{StaticResource ToolbarButton}" Margin="12,0,4,0"
                                                Command="{Binding DataContext.ConfigureGameCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                CommandParameter="{Binding}" />
+                                    <ui:Button Style="{StaticResource IconButton}"
+                                               Command="{Binding DataContext.RemoveGameCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}"
+                                               ToolTip="Remove game" AutomationProperties.Name="Remove game">
+                                        <ui:Button.Icon>
+                                            <ui:SymbolIcon Symbol="Delete24" />
+                                        </ui:Button.Icon>
+                                    </ui:Button>
                                 </StackPanel>
                             </Grid>
                         </Border>

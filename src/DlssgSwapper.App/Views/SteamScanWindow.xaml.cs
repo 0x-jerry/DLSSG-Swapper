@@ -1,12 +1,14 @@
 using System.Windows;
 using System.Windows.Controls;
 using DlssgSwapper.Core.Steam;
+using Wpf.Ui.Controls;
 
 namespace DlssgSwapper.App.Views;
 
 public partial class SteamScanWindow
 {
     private readonly List<SteamApp> _apps = new();
+    private bool _scanning;
 
     public string? SelectedGameName { get; private set; }
     public string? SelectedExe { get; private set; }
@@ -23,8 +25,11 @@ public partial class SteamScanWindow
 
     private async Task ScanAsync()
     {
-        GamesList.IsEnabled = false;
-        StatusText.Text = "Scanning Steam libraries…";
+        if (_scanning) return;
+        _scanning = true;
+        ScanRing.Visibility = Visibility.Visible;
+        ShowStatus(InfoBarSeverity.Informational, "Scanning Steam libraries…", "Reading the folders Steam has registered.");
+
         try
         {
             var apps = await Task.Run(() =>
@@ -37,30 +42,52 @@ public partial class SteamScanWindow
             _apps.Clear();
             if (apps == null)
             {
-                StatusText.Text = "Steam installation not found in the registry. Add the game manually instead.";
                 GamesList.ItemsSource = null;
+                ShowStatus(InfoBarSeverity.Warning, "Steam was not found",
+                           "Steam is not registered on this machine. Add the game manually instead.");
                 return;
             }
+
             _apps.AddRange(apps);
             GamesList.ItemsSource = _apps;
-            StatusText.Text = $"Select a game, then its rendering executable. Found {_apps.Count} installed games.";
+            ShowStatus(
+                _apps.Count > 0 ? InfoBarSeverity.Success : InfoBarSeverity.Warning,
+                $"Found {_apps.Count} installed {(_apps.Count == 1 ? "game" : "games")}",
+                _apps.Count > 0 ? "Select a game, then its rendering executable." : "No Steam library entries were readable.");
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Scan failed: {ex.Message}";
+            ShowStatus(InfoBarSeverity.Error, "Scan failed", ex.Message);
         }
         finally
         {
-            GamesList.IsEnabled = true;
+            _scanning = false;
+            ScanRing.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private void ShowStatus(InfoBarSeverity severity, string title, string message)
+    {
+        ScanStatus.Severity = severity;
+        ScanStatus.Title = title;
+        ScanStatus.Message = message;
+        ScanStatus.IsOpen = true;
     }
 
     private void OnGameSelected(object sender, SelectionChangedEventArgs e)
     {
-        ExesList.ItemsSource = GamesList.SelectedItem is SteamApp app
+        var exes = GamesList.SelectedItem is SteamApp app
             ? SteamLibraryScanner.FindCandidateExecutables(app.InstallDir)
             : null;
+
+        ExesList.ItemsSource = exes;
         OkButton.IsEnabled = false;
+        ExesHint.Text = exes switch
+        {
+            null => "Select a game to list its executables.",
+            { Count: 0 } => "No executable found in this folder. Try another game.",
+            _ => "",
+        };
     }
 
     private void OnExeSelected(object sender, SelectionChangedEventArgs e)

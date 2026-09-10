@@ -44,13 +44,13 @@ public sealed class RelayCommand<T> : ICommand
     private static T? Cast(object? parameter) => parameter is T value ? value : default;
 }
 
-public sealed class AsyncRelayCommand : ICommand
+public sealed class AsyncRelayCommand<T> : ICommand
 {
-    private readonly Func<Task> _execute;
-    private readonly Func<bool>? _canExecute;
+    private readonly Func<T?, Task> _execute;
+    private readonly Func<T?, bool>? _canExecute;
     private bool _running;
 
-    public AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute = null)
+    public AsyncRelayCommand(Func<T?, Task> execute, Func<T?, bool>? canExecute = null)
     {
         _execute = execute;
         _canExecute = canExecute;
@@ -58,7 +58,7 @@ public sealed class AsyncRelayCommand : ICommand
 
     public event EventHandler? CanExecuteChanged;
 
-    public bool CanExecute(object? parameter) => !_running && (_canExecute?.Invoke() ?? true);
+    public bool CanExecute(object? parameter) => !_running && (_canExecute?.Invoke(Cast(parameter)) ?? true);
 
     public async void Execute(object? parameter)
     {
@@ -67,7 +67,7 @@ public sealed class AsyncRelayCommand : ICommand
         RaiseCanExecuteChanged();
         try
         {
-            await _execute();
+            await _execute(Cast(parameter));
         }
         finally
         {
@@ -77,4 +77,6 @@ public sealed class AsyncRelayCommand : ICommand
     }
 
     public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+
+    private static T? Cast(object? parameter) => parameter is T value ? value : default;
 }

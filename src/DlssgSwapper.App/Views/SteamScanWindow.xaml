@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Add game from Steam"
-        Height="620" Width="920"
+        Height="640" Width="940"
+        MinHeight="520" MinWidth="760"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         ExtendsContentIntoTitleBar="True"
@@ -15,10 +16,12 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="Add game from Steam" />
+        <ui:TitleBar Grid.Row="0" Title="Add game from Steam"
+                     ShowMinimize="False" ShowMaximize="False" />
 
-        <Grid Grid.Row="1" Margin="24,18,24,20">
+        <Grid Grid.Row="1" Margin="24,10,24,20">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -31,7 +34,10 @@
                            Text="Pick an installed game, then the executable that loads DLSS." />
             </StackPanel>
 
-            <Grid Grid.Row="1">
+            <ui:InfoBar x:Name="ScanStatus" Grid.Row="1" Margin="0,0,0,14"
+                        Severity="Informational" IsClosable="False" IsOpen="False" />
+
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="16" />
@@ -40,9 +46,13 @@
 
                 <DockPanel Grid.Column="0">
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <TextBlock Text="Games" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" />
-                        <ui:Button Content="Rescan" Click="OnRescan" Style="{StaticResource ToolbarButton}"
-                                   HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Games" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" />
+                            <ui:ProgressRing x:Name="ScanRing" Width="16" Height="16" Margin="8,0,0,0"
+                                             IsIndeterminate="True" Visibility="Collapsed" />
+                        </StackPanel>
+                        <ui:Button Content="Rescan" Click="OnRescan"
+                                   Style="{StaticResource ToolbarButton}" HorizontalAlignment="Right">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="ArrowSync24" />
                             </ui:Button.Icon>
@@ -76,35 +86,53 @@
                 <DockPanel Grid.Column="2">
                     <TextBlock DockPanel.Dock="Top" Text="Rendering executable"
                                Style="{StaticResource SectionTitleText}" Margin="0,0,0,8" />
-                    <Border Style="{StaticResource CardPanel}" Margin="0">
-                        <ui:ListView x:Name="ExesList" SelectionChanged="OnExeSelected"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     Background="Transparent" BorderThickness="0" Padding="0">
-                            <ui:ListView.ItemContainerStyle>
-                                <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="Padding" Value="6,4" />
+                    <Grid>
+                        <Border Style="{StaticResource CardPanel}" Margin="0">
+                            <ui:ListView x:Name="ExesList" SelectionChanged="OnExeSelected"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         Background="Transparent" BorderThickness="0" Padding="0">
+                                <ui:ListView.ItemContainerStyle>
+                                    <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Padding" Value="6,4" />
+                                    </Style>
+                                </ui:ListView.ItemContainerStyle>
+                                <ui:ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path}" Margin="2,1"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ui:ListView.ItemTemplate>
+                            </ui:ListView>
+                        </Border>
+
+                        <TextBlock x:Name="ExesHint" IsHitTestVisible="False"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                                   MaxWidth="240">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionText}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasItems, ElementName=ExesList}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
-                            </ui:ListView.ItemContainerStyle>
-                            <ui:ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Path}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                               TextTrimming="CharacterEllipsis" />
-                                </DataTemplate>
-                            </ui:ListView.ItemTemplate>
-                        </ui:ListView>
-                    </Border>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
                 </DockPanel>
             </Grid>
 
-            <TextBlock x:Name="StatusText" Grid.Row="2" Text="Scanning Steam libraries…"
-                       Style="{StaticResource CaptionText}" Margin="0,12,0,0" VerticalAlignment="Center" />
+            <Border Grid.Row="3" BorderThickness="0,1,0,0" Margin="0,18,0,0" Padding="0,14,0,0"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" />
 
-            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-                <ui:Button x:Name="OkButton" Content="Add game" Click="OnOk" IsEnabled="False"
-                           Appearance="Primary" IsDefault="True" Padding="18,8" FontWeight="SemiBold"
-                           MinWidth="120" Margin="0,0,8,0" />
-                <ui:Button Content="Cancel" Click="OnCancel" IsCancel="True" Padding="18,8" MinWidth="96" />
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button x:Name="OkButton" Content="Add game" Click="OnOk" IsEnabled="False" IsDefault="True"
+                           Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
+                <ui:Button Content="Cancel" Click="OnCancel" IsCancel="True"
+                           Style="{StaticResource ToolbarButton}" MinWidth="96" />
             </StackPanel>
         </Grid>
     </Grid>
