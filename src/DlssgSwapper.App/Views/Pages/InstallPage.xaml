@@ -9,11 +9,26 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Install &amp; swap" Style="{StaticResource PageTitleText}" />
-            <TextBlock Style="{StaticResource PageSubtitleText}" Margin="0,3,0,0"
-                       Text="Choose the payload and frame generation settings, then write them next to the game executable." />
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <ui:Button Grid.Column="0" Command="{Binding ShowGamesCommand}" Style="{StaticResource IconButton}"
+                       VerticalAlignment="Top" Margin="0,2,10,0"
+                       ToolTip="Back to Library" AutomationProperties.Name="Back to Library">
+                <ui:Button.Icon>
+                    <ui:SymbolIcon Symbol="ArrowLeft24" />
+                </ui:Button.Icon>
+            </ui:Button>
+
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Install &amp; swap" Style="{StaticResource PageTitleText}" />
+                <TextBlock Style="{StaticResource PageSubtitleText}" Margin="0,3,0,0"
+                           Text="Choose the payload and frame generation settings, then write them next to the game executable." />
+            </StackPanel>
+        </Grid>
 
         <Grid Grid.Row="1">
             <!-- Configured view -->
