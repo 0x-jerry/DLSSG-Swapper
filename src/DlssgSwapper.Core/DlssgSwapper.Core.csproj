@@ -1,9 +1,22 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <SubmoduleRoot>$(MSBuildThisFileDirectory)..\..\external\dlssg_for_sm86\</SubmoduleRoot>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\payloads\catalog.json" Link="payloads\catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\payloads\templates\*.ini" Link="payloads\templates\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <Content Include="$(SubmoduleRoot)version.dll" Link="payloads\bin\0.2.4\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)version.dll')" />
+    <Content Include="$(SubmoduleRoot)altnative\winmm.dll" Link="payloads\bin\0.2.4\winmm.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)altnative\winmm.dll')" />
+    <Content Include="$(SubmoduleRoot)altnative\dinput8.dll" Link="payloads\bin\0.2.4\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)altnative\dinput8.dll')" />
+    <Content Include="$(SubmoduleRoot)altnative\winhttp.dll" Link="payloads\bin\0.2.4\winhttp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)altnative\winhttp.dll')" />
+    <Content Include="$(SubmoduleRoot)altnative\dxgi.dll" Link="payloads\bin\0.2.4\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)altnative\dxgi.dll')" />
+    <Content Include="$(SubmoduleRoot)archive\version.dll" Link="payloads\bin\0.1.0\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)archive\version.dll')" />
+  </ItemGroup>
 
 </Project>

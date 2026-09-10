@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "versions": [
+    {
+      "version": "0.2.4",
+      "displayName": "Native 0.2.4",
+      "iniSchema": "native",
+      "sourceRoot": "external/dlssg_for_sm86",
+      "templates": {
+        "default": "templates/native-default.ini",
+        "performance": "templates/native-performance.ini"
+      },
+      "entryPoints": [
+        {
+          "file": "version.dll",
+          "source": "version.dll",
+          "sha256": "c844646d835a7b88ed1382eea80403d38b433f8ac09cf92581c73698c44ae7c2",
+          "recommended": true,
+          "note": "Default entry point"
+        },
+        {
+          "file": "winmm.dll",
+          "source": "altnative/winmm.dll",
+          "sha256": "1004dd4ee0edbe4e1af4c8c7b30d4786bea0f5e7c0412566996b4c2543ae7e36",
+          "note": "Alternate entry point"
+        },
+        {
+          "file": "dinput8.dll",
+          "source": "altnative/dinput8.dll",
+          "sha256": "ef3c3d49c5b5c8a17289c24da9b22885570793d72f3db628fa500f9efdb20489",
+          "note": "Alternate entry point"
+        },
+        {
+          "file": "winhttp.dll",
+          "source": "altnative/winhttp.dll",
+          "sha256": "1619839e4d1b6145ce9a587ba807f42e64f2b0984af9e81700d42ccf46ff7253",
+          "note": "Alternate entry point"
+        },
+        {
+          "file": "dxgi.dll",
+          "source": "altnative/dxgi.dll",
+          "sha256": "8d29eddbd7f1c3e272d07f94ab8812a80ef5b7aeb73923320bf9a432ddcf74c0",
+          "note": "Can conflict with ReShade"
+        }
+      ]
+    },
+    {
+      "version": "0.1.0",
+      "displayName": "Release 0.1.0 (legacy)",
+      "iniSchema": "legacy",
+      "sourceRoot": "external/dlssg_for_sm86/archive",
+      "templates": {
+        "default": "templates/legacy-default.ini"
+      },
+      "entryPoints": [
+        {
+          "file": "version.dll",
+          "source": "version.dll",
+          "sha256": "03d445237d519ac48cd9226278a0f07aecd7ac597697697eb64404e1d51b3c5a",
+          "recommended": true,
+          "note": "Only entry point for 0.1.0"
+        }
+      ]
+    }
+  ]
+}
