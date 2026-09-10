@@ -60,6 +60,7 @@ public static class SteamLibraryScanner
     public static IReadOnlyList<SteamApp> FindInstalledApps(IEnumerable<string> libraryRoots)
     {
         var apps = new List<SteamApp>();
+        var seenAppIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string root in libraryRoots.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             string appsDir = Path.Combine(root, "steamapps");
@@ -75,6 +76,9 @@ public static class SteamLibraryScanner
                     string name = state?.GetValue("name") ?? "";
                     string installDir = state?.GetValue("installdir") ?? "";
                     if (name.Length == 0) continue;
+                    // The same library can be listed twice (registry plus libraryfolders.vdf),
+                    // so one game may have a manifest in more than one scanned root.
+                    if (appId.Length > 0 && !seenAppIds.Add(appId)) continue;
 
                     string resolved = Path.Combine(appsDir, "common", installDir);
                     apps.Add(new SteamApp(appId, name, Directory.Exists(resolved) ? resolved : Path.Combine(root, "steamapps", "common", installDir)));

@@ -100,6 +100,27 @@ public class SteamLibraryScannerTests
     }
 
     [Fact]
+    public void FindInstalledApps_ListsAGameOnceWhenItsLibraryIsScannedTwice()
+    {
+        string temp = Path.Combine(Path.GetTempPath(), $"steam-dupe-{Guid.NewGuid():N}");
+        try
+        {
+            string appsDir = Path.Combine(temp, "steamapps");
+            Directory.CreateDirectory(Path.Combine(appsDir, "common", "MyGame"));
+            File.WriteAllText(Path.Combine(appsDir, "appmanifest_123.acf"),
+                "\"AppState\"\n{\n\"appid\" \"123\"\n\"name\" \"My Game\"\n\"installdir\" \"MyGame\"\n}\n");
+
+            var apps = SteamLibraryScanner.FindInstalledApps(new[] { temp, temp + Path.DirectorySeparatorChar });
+            Assert.Single(apps);
+            Assert.Equal("123", apps[0].AppId);
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Fact]
     public void FindCandidateExecutables_RanksWin64AndNvngxDllSibling()
     {
         string temp = Path.Combine(Path.GetTempPath(), $"exe-test-{Guid.NewGuid():N}");
