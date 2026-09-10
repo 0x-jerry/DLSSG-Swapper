@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Publish
+        run: dotnet publish src/DlssgSwapper.App/DlssgSwapper.App.csproj -c Release -o out
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path out/* -DestinationPath "DlssgSwapper-${{ github.ref_name }}-win-x64.zip"
+
+      - name: Create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" "DlssgSwapper-${{ github.ref_name }}-win-x64.zip" --title "${{ github.ref_name }}" --generate-notes
