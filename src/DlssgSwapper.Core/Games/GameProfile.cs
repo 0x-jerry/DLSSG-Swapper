@@ -15,6 +15,8 @@ public sealed record GameProfile
     public string ExecutablePath { get; init; } = "";
     public GameSource Source { get; init; } = GameSource.Manual;
     public FrameGenSettings? Settings { get; init; }
+    public string? PayloadVersion { get; init; }
+    public string? PayloadEntryPoint { get; init; }
 
     public string GameDirectory =>
         Path.GetDirectoryName(ExecutablePath) ?? throw new InvalidOperationException("Game executable has no directory");
