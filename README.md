@@ -20,7 +20,9 @@ This tool does that for you and keeps track of what it changed.
 - **Install / swap** — copies the chosen proxy + INI next to the game EXE.
   Swapping entry points (`version.dll`, `winmm.dll`, `dinput8.dll`,
   `winhttp.dll`, `dxgi.dll`) or versions removes the previously installed
-  proxy so only one package proxy remains.
+  proxy so only one package proxy remains. Entry points whose DLL name
+  already exists in the game folder are marked as found; every name stays
+  selectable and `version.dll` remains the recommended default.
 - **Schema-faithful INI** — writes the five native 0.2.4 keys (`Router`,
   `KernelImage`, `HardwareBilinear`, `MaxGeneratedFrames`, `Logging.Level`)
   into the bundled template, preserving comments and untouched keys.

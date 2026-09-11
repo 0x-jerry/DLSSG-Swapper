@@ -76,6 +76,15 @@ public sealed class GameProfileViewModel : ObservableObject
     };
 }
 
+public sealed record EntryPointOption(PayloadEntryPoint EntryPoint, bool IsPresent)
+{
+    public string DisplayName => EntryPoint.FileName;
+
+    public string Note => IsPresent
+        ? "A file with this name already exists in the game folder"
+        : EntryPoint.Note ?? "";
+}
+
 public sealed class MainViewModel : ObservableObject
 {
     private readonly ProfileStore _store = ProfileStore.OpenDefault();
@@ -85,7 +94,7 @@ public sealed class MainViewModel : ObservableObject
 
     private GameProfileViewModel? _selectedProfile;
     private PayloadVersion? _selectedVersion;
-    private PayloadEntryPoint? _selectedEntryPoint;
+    private EntryPointOption? _selectedEntryPoint;
     private Preset _selectedPreset = Preset.Default;
     private string _selectedRouter = "SM86";
     private string _selectedKernelImage = "PTX";
@@ -96,6 +105,7 @@ public sealed class MainViewModel : ObservableObject
     private string _gpuSummary = "Detecting GPU…";
     private string _gpuRouterSuggestion = "";
     private string _statusText = "Add or select a game to begin.";
+    private string _entryPointHint = "";
     private VerificationReport? _verification;
 
     public MainViewModel()
@@ -136,6 +146,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<int> MaxFrames { get; }
     public ObservableCollection<int> LoggingLevels { get; }
     public ObservableCollection<Preset> Presets { get; }
+    public ObservableCollection<EntryPointOption> EntryPointOptions { get; } = new();
 
     public RelayCommand AddGameCommand { get; }
     public RelayCommand ScanSteamCommand { get; }
@@ -193,17 +204,14 @@ public sealed class MainViewModel : ObservableObject
             if (!Set(ref _selectedVersion, value)) return;
             if (value != null)
             {
-                string? previous = _selectedEntryPoint?.FileName;
-                _selectedEntryPoint = value.FindEntryPoint(previous ?? "")
-                    ?? value.EntryPoints.FirstOrDefault(e => e.Recommended);
-                OnPropertyChanged(nameof(SelectedEntryPoint));
+                RebuildEntryPoints(preferredFileName: null);
                 ApplySchemaDefaults();
             }
             RaiseCommandStates();
         }
     }
 
-    public PayloadEntryPoint? SelectedEntryPoint
+    public EntryPointOption? SelectedEntryPoint
     {
         get => _selectedEntryPoint;
         set
@@ -234,6 +242,8 @@ public sealed class MainViewModel : ObservableObject
     public string GpuRouterSuggestion { get => _gpuRouterSuggestion; set => Set(ref _gpuRouterSuggestion, value); }
 
     public string StatusText { get => _statusText; set => Set(ref _statusText, value); }
+
+    public string EntryPointHint { get => _entryPointHint; private set => Set(ref _entryPointHint, value); }
 
     public VerificationReport? Verification
     {
@@ -300,6 +310,7 @@ public sealed class MainViewModel : ObservableObject
         if (profile == null)
         {
             SelectedVersion = Versions.FirstOrDefault();
+            RebuildEntryPoints(preferredFileName: null);
             return;
         }
 
@@ -317,12 +328,42 @@ public sealed class MainViewModel : ObservableObject
         }
 
         if (SelectedVersion != null)
-        {
-            SelectedEntryPoint = profile.PayloadEntryPoint != null
-                ? SelectedVersion.FindEntryPoint(profile.PayloadEntryPoint)
-                : SelectedVersion.EntryPoints.FirstOrDefault(e => e.Recommended);
-        }
+            RebuildEntryPoints(profile.PayloadEntryPoint);
     }
+
+    private void RebuildEntryPoints(string? preferredFileName)
+    {
+        EntryPointOptions.Clear();
+        var version = _selectedVersion;
+        if (version == null)
+        {
+            SelectedEntryPoint = null;
+            EntryPointHint = "";
+            return;
+        }
+
+        string? gameDirectory = _selectedProfile == null
+            ? null
+            : Path.GetDirectoryName(_selectedProfile.Profile.ExecutablePath);
+        var present = EntryPointDetector.FindPresent(
+            gameDirectory, version.EntryPoints.Select(e => e.FileName));
+        foreach (var entryPoint in version.EntryPoints)
+            EntryPointOptions.Add(new EntryPointOption(entryPoint, present.Contains(entryPoint.FileName)));
+
+        SelectedEntryPoint =
+            EntryPointOptions.FirstOrDefault(o => NameEq(o, preferredFileName))
+            ?? EntryPointOptions.FirstOrDefault(o => NameEq(o, _selectedEntryPoint?.EntryPoint.FileName))
+            ?? EntryPointOptions.FirstOrDefault(o => o.EntryPoint.Recommended)
+            ?? EntryPointOptions.FirstOrDefault();
+
+        string recommended = version.EntryPoints.FirstOrDefault(e => e.Recommended)?.FileName ?? "version.dll";
+        EntryPointHint = present.Count > 0
+            ? $"Found in the game folder: {string.Join(", ", present)}. Marked entries already exist next to the executable."
+            : $"No proxy DLL from the payload was found in the game folder; the recommended {recommended} is selected by default.";
+    }
+
+    private static bool NameEq(EntryPointOption option, string? fileName) =>
+        fileName != null && string.Equals(option.EntryPoint.FileName, fileName, StringComparison.OrdinalIgnoreCase);
 
     private void ApplySchemaDefaults()
     {
@@ -433,14 +474,15 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            var warnings = _service.Install(item.Profile, _selectedVersion, _selectedEntryPoint, CurrentSettings, _overwriteForeign);
+            var entryPoint = _selectedEntryPoint.EntryPoint;
+            var warnings = _service.Install(item.Profile, _selectedVersion, entryPoint, CurrentSettings, _overwriteForeign);
             _store.Update(item.Profile with
             {
                 Settings = CurrentSettings,
                 PayloadVersion = _selectedVersion.Version,
-                PayloadEntryPoint = _selectedEntryPoint.FileName,
+                PayloadEntryPoint = entryPoint.FileName,
             });
-            string message = $"Installed {_selectedVersion.Version} via {_selectedEntryPoint.FileName} into " +
+            string message = $"Installed {_selectedVersion.Version} via {entryPoint.FileName} into " +
                              $"{Path.GetDirectoryName(item.ExecutablePath)}.";
             if (warnings.Count > 0) message += Environment.NewLine + string.Join(Environment.NewLine, warnings);
             SetStatus(message);

@@ -90,11 +90,43 @@
 
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Entry point"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,0" />
-                                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding SelectedVersion.EntryPoints}"
-                                              DisplayMemberPath="FileName" SelectedItem="{Binding SelectedEntryPoint}" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1"
+                                              ItemsSource="{Binding EntryPointOptions}"
+                                              SelectedItem="{Binding SelectedEntryPoint}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                                               VerticalAlignment="Center" ToolTip="{Binding Note}" />
+                                                    <Border Grid.Column="1" Margin="10,0,0,0" Padding="6,1"
+                                                            CornerRadius="8" VerticalAlignment="Center"
+                                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsPresent}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="found" FontSize="11"
+                                                                   Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </Grid>
                                 <TextBlock Style="{StaticResource CaptionText}" Margin="0,12,0,0"
                                            Text="The entry point is the proxy DLL name (usually version.dll). Only one package proxy may be installed per game." />
+                                <TextBlock Style="{StaticResource CaptionText}" Margin="0,4,0,0"
+                                           Text="{Binding EntryPointHint}" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
 
