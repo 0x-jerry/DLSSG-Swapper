@@ -51,6 +51,8 @@
 
                 <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
                     <StackPanel>
+                        <InfoBar IsOpen="{Binding HasGpuWarning}" Severity="Warning" IsClosable="False"
+                                 Title="Unsupported GPU" Message="{Binding GpuWarning}" Margin="0,0,0,12" />
                         <Border Style="{StaticResource CardPanel}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
@@ -127,46 +129,58 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Preset"
-                                               Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
-                                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Presets}"
-                                              SelectedItem="{Binding SelectedPreset, Mode=TwoWay}" HorizontalAlignment="Stretch"
-                                              Margin="0,0,0,10" />
+                                    <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                              Content="Frame generation enabled ([General] Enabled)"
+                                              IsChecked="{Binding Enabled, Mode=TwoWay}" />
+                                    <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                              Content="Optimized kernels ([FrameGeneration] Optimized)"
+                                              IsChecked="{Binding Optimized, Mode=TwoWay}" Margin="0,10,0,0" />
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Router"
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Preset"
+                                               Style="{StaticResource FieldLabelText}" Margin="0,18,12,10" />
+                                    <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,18,0,10">
+                                        <ComboBox ItemsSource="{Binding Presets}"
+                                                  SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                                                  HorizontalAlignment="Stretch" />
+                                        <TextBlock Text="Render preset (UI recomposition); 310.9 build only."
+                                                   Style="{StaticResource CaptionText}" Margin="2,3,0,0" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Router"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,2" />
-                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,10">
+                                    <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,10">
                                         <ComboBox ItemsSource="{Binding Routers}" SelectedItem="{Binding SelectedRouter, Mode=TwoWay}"
                                                   HorizontalAlignment="Stretch" />
                                         <TextBlock Text="{Binding GpuRouterSuggestion}" Style="{StaticResource CaptionText}"
                                                    Margin="2,3,0,0" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Kernel image"
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Kernel image"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
-                                    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding KernelImages}"
+                                    <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding KernelImages}"
                                               SelectedItem="{Binding SelectedKernelImage, Mode=TwoWay}" HorizontalAlignment="Stretch"
                                               Margin="0,0,0,10" />
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Max generated frames"
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Max generated frames"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
-                                    <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding MaxFrames}"
-                                              SelectedItem="{Binding SelectedMaxFrames, Mode=TwoWay}" HorizontalAlignment="Stretch"
-                                              Margin="0,0,0,10" />
+                                    <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,10">
+                                        <ComboBox ItemsSource="{Binding MaxFrames}"
+                                                  SelectedItem="{Binding SelectedMaxFrames, Mode=TwoWay}" HorizontalAlignment="Stretch" />
+                                        <TextBlock Text="0 = runtime default; 1 = 2X, 3 = 4X, 5 = 6X. The 310.1 build caps at 4X."
+                                                   Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
 
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Logging level"
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Logging level"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,0" />
-                                    <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding LoggingLevels}"
+                                    <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding LoggingLevels}"
                                               SelectedItem="{Binding SelectedLoggingLevel, Mode=TwoWay}" HorizontalAlignment="Stretch" />
 
-                                    <CheckBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
-                                              Content="Approximate sampling (HardwareBilinear = 1)"
-                                              IsChecked="{Binding HardwareBilinear, Mode=TwoWay}" Margin="0,18,0,0" />
-                                    <CheckBox Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                                    <CheckBox Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2"
                                               Content="Allow overwriting foreign files (they are backed up first)"
-                                              IsChecked="{Binding OverwriteForeign, Mode=TwoWay}" Margin="0,10,0,0" />
+                                              IsChecked="{Binding OverwriteForeign, Mode=TwoWay}" Margin="0,18,0,0" />
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -267,17 +281,28 @@
                             </StackPanel>
                         </Border>
 
-                        <Expander Header="Output" IsExpanded="False" Margin="0,0,0,12">
+                        <Border Style="{StaticResource CardPanel}">
                             <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE756;" FontSize="16"
+                                                  Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Output" Style="{StaticResource SectionTitleText}"
+                                                   Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <Button Command="{Binding CopyStatusCommand}" Style="{StaticResource IconButton}"
+                                            HorizontalAlignment="Right"
+                                            ToolTipService.ToolTip="Copy output"
+                                            AutomationProperties.Name="Copy output">
+                                        <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                    </Button>
+                                </Grid>
                                 <TextBox Text="{Binding StatusText, Mode=OneWay}" IsReadOnly="True"
                                          TextWrapping="Wrap" AcceptsReturn="True" Height="150"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          FontFamily="Cascadia Mono, Consolas" FontSize="12" />
-                                <Button Content="Copy" Command="{Binding CopyStatusCommand}"
-                                        Style="{StaticResource ToolbarButton}" HorizontalAlignment="Right"
-                                        Margin="0,8,0,0" />
                             </StackPanel>
-                        </Expander>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

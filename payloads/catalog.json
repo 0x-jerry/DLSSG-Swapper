@@ -2,44 +2,98 @@
   "schemaVersion": 1,
   "versions": [
     {
-      "version": "0.2.4",
-      "displayName": "Native 0.2.4",
+      "version": "0.3.0",
+      "displayName": "0.3.0 · 310.9 (up to 6X)",
       "sourceRoot": "external/dlssg_for_sm86",
+      "maxGeneratedFrames": 5,
       "templates": {
-        "default": "templates/native-default.ini",
-        "performance": "templates/native-performance.ini"
+        "default": "templates/sm86-default.ini"
       },
       "entryPoints": [
         {
           "file": "version.dll",
           "source": "version.dll",
-          "sha256": "c844646d835a7b88ed1382eea80403d38b433f8ac09cf92581c73698c44ae7c2",
+          "sha256": "a22d2453f25d7df3fdc0d6d683c21f01769a115439d58f1341183a75faaf8c7d",
           "recommended": true,
           "note": "Default entry point"
         },
         {
           "file": "winmm.dll",
-          "source": "altnative/winmm.dll",
-          "sha256": "1004dd4ee0edbe4e1af4c8c7b30d4786bea0f5e7c0412566996b4c2543ae7e36",
+          "source": "alternatives/winmm.dll",
+          "sha256": "197f97e90541ae688d291ef388b1eddc0c55cb657603eb55dea2d3d178b1e384",
+          "note": "Alternate entry point"
+        },
+        {
+          "file": "dbghelp.dll",
+          "source": "alternatives/dbghelp.dll",
+          "sha256": "10e2fe2d84b8b674e184891ca5211b01c43c6700e1c8b8c6d4969286f653bff8",
           "note": "Alternate entry point"
         },
         {
           "file": "dinput8.dll",
-          "source": "altnative/dinput8.dll",
-          "sha256": "ef3c3d49c5b5c8a17289c24da9b22885570793d72f3db628fa500f9efdb20489",
-          "note": "Alternate entry point"
-        },
-        {
-          "file": "winhttp.dll",
-          "source": "altnative/winhttp.dll",
-          "sha256": "1619839e4d1b6145ce9a587ba807f42e64f2b0984af9e81700d42ccf46ff7253",
+          "source": "alternatives/dinput8.dll",
+          "sha256": "01fdd5e77e64045400a2e7b6f35f98f3403335e30cd9def0e996f78240aa65da",
           "note": "Alternate entry point"
         },
         {
           "file": "dxgi.dll",
-          "source": "altnative/dxgi.dll",
-          "sha256": "8d29eddbd7f1c3e272d07f94ab8812a80ef5b7aeb73923320bf9a432ddcf74c0",
-          "note": "Can conflict with ReShade"
+          "source": "alternatives/dxgi.dll",
+          "sha256": "ae37150fe056f3388571481ad4aaf78fad720e9b52eb7e6e1e9d2dff85df841e",
+          "note": "Render-path proxy; can conflict with ReShade"
+        },
+        {
+          "file": "d3d12.dll",
+          "source": "alternatives/d3d12.dll",
+          "sha256": "63e7c3a1ba0b10e37e1a162ccf3aa2e19a0f7359de63787585c09baffd67ad45",
+          "note": "Render-path proxy; use instead of dxgi.dll, never both"
+        }
+      ]
+    },
+    {
+      "version": "0.3.0-310.1",
+      "displayName": "0.3.0 · 310.1 (up to 4X)",
+      "sourceRoot": "external/dlssg_for_sm86/310.1",
+      "maxGeneratedFrames": 3,
+      "templates": {
+        "default": "templates/sm86-default.ini"
+      },
+      "entryPoints": [
+        {
+          "file": "version.dll",
+          "source": "version.dll",
+          "sha256": "4646fe15a21c01d251865253f55cefd5892dd2e561ece0c8efa49ae78b5de32e",
+          "recommended": true,
+          "note": "Default entry point"
+        },
+        {
+          "file": "winmm.dll",
+          "source": "alternatives/winmm.dll",
+          "sha256": "dde7ec668130b09f807338c4c594609a75349860bb5ca4428797f6ab2175b9c1",
+          "note": "Alternate entry point"
+        },
+        {
+          "file": "dbghelp.dll",
+          "source": "alternatives/dbghelp.dll",
+          "sha256": "1537a207f6490f49373ac8164e2021e6f25bd212e4abc8564dfd8110ad3afe28",
+          "note": "Alternate entry point"
+        },
+        {
+          "file": "dinput8.dll",
+          "source": "alternatives/dinput8.dll",
+          "sha256": "e87a61ef84f60b58e5f3b841006992a30d8fd2998096f065b317e7126ebccd9b",
+          "note": "Alternate entry point"
+        },
+        {
+          "file": "dxgi.dll",
+          "source": "alternatives/dxgi.dll",
+          "sha256": "f8d823609f994861d27abf50c9cb78386202650f8da1c868eaa2a40f13feef70",
+          "note": "Render-path proxy; can conflict with ReShade"
+        },
+        {
+          "file": "d3d12.dll",
+          "source": "alternatives/d3d12.dll",
+          "sha256": "337ed97b9303192915e6edcac0310dca8817f72baa414dffa83d238cdb2ca724",
+          "note": "Render-path proxy; use instead of dxgi.dll, never both"
         }
       ]
     }

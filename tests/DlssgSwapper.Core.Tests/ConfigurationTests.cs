@@ -8,12 +8,13 @@ public class IniFileTests
         ; Header comment
         [Compatibility]
         ; SM86 for Ampere
-        Router=SM86
-        KernelImage=PTX
-        HardwareBilinear=0
+        Router=Auto
+        KernelImage=Auto
+        Preset=Auto
 
         [FrameGeneration]
-        MaxGeneratedFrames=3
+        Optimized=1
+        MaxGeneratedFrames=5
 
         [Logging]
         Level=1
@@ -30,8 +31,8 @@ public class IniFileTests
         Assert.Contains("; SM86 for Ampere", rendered);
         Assert.Contains("Router=SM75", rendered);
         Assert.Contains("Level=2", rendered);
-        Assert.Contains("KernelImage=PTX", rendered); // untouched
-        Assert.DoesNotContain("HardwareBilinear=1", rendered);
+        Assert.Contains("KernelImage=Auto", rendered); // untouched
+        Assert.DoesNotContain("Preset=B", rendered);
         Assert.True(rendered.IndexOf("Router=SM75") < rendered.IndexOf("[FrameGeneration]"));
     }
 
@@ -63,7 +64,7 @@ public class IniFileTests
     public void Render_IsIdempotent()
     {
         var ini = IniFile.Parse(Sample);
-        ini.Set("Compatibility", "KernelImage", "Auto");
+        ini.Set("Compatibility", "KernelImage", "Cubin");
         string once = ini.Render();
         var again = IniFile.Parse(once);
         Assert.Equal(once, again.Render());
@@ -73,7 +74,7 @@ public class IniFileTests
     public void Get_ReturnsValue_IgnoringCase()
     {
         var ini = IniFile.Parse(Sample);
-        Assert.Equal("SM86", ini.Get("compatibility", "router"));
+        Assert.Equal("Auto", ini.Get("compatibility", "router"));
         Assert.Null(ini.Get("Logging", "Missing"));
     }
 }
@@ -81,43 +82,47 @@ public class IniFileTests
 public class IniApplierTests
 {
     private static string Template() =>
-        Path.Combine(AppContext.BaseDirectory, "payloads", "templates", "native-default.ini");
+        Path.Combine(AppContext.BaseDirectory, "payloads", "templates", "sm86-default.ini");
 
     [Fact]
-    public void Apply_WritesAllFiveKeys()
+    public void Apply_WritesEveryManagedKey()
     {
         var ini = IniFile.Load(Template());
         IniApplier.Apply(ini, new FrameGenSettings
         {
+            Enabled = 0,
+            Optimized = 0,
             Router = "SM86",
             KernelImage = "Cubin",
-            HardwareBilinear = 1,
+            Preset = "B",
             MaxGeneratedFrames = 2,
             LoggingLevel = 0,
         });
 
         string rendered = ini.Render();
+        Assert.Contains("Enabled=0", rendered);
+        Assert.Contains("Optimized=0", rendered);
         Assert.Contains("Router=SM86", rendered);
         Assert.Contains("KernelImage=Cubin", rendered);
-        Assert.Contains("HardwareBilinear=1", rendered);
+        Assert.Contains("Preset=B", rendered);
         Assert.Contains("MaxGeneratedFrames=2", rendered);
         Assert.Contains("Level=0", rendered);
     }
 
     [Fact]
-    public void Apply_DoesNotEmitUnrelatedKeys()
+    public void Apply_LeavesUnmanagedKeysAtTemplateDefaults()
     {
         var ini = IniFile.Load(Template());
         IniApplier.Apply(ini, FrameGenSettings.Defaults());
 
         string rendered = ini.Render();
-        Assert.DoesNotContain("Enabled=", rendered);
-        Assert.DoesNotContain("[General]", rendered);
-        Assert.DoesNotContain("[Runtime]", rendered);
+        Assert.Contains("Mode=Bundled", rendered);
+        Assert.Contains("CacheDirectory=", rendered);
+        Assert.Contains("Directory=dlssg_sm86\\logs", rendered);
     }
 
     [Theory]
-    [InlineData(5)]
+    [InlineData(6)]
     [InlineData(16)]
     public void OutOfRange_MaxGeneratedFrames_Throws(int value)
     {
@@ -129,13 +134,25 @@ public class IniApplierTests
     }
 
     [Fact]
-    public void Defaults_MatchesTemplateDefaults()
+    public void InvalidPreset_Throws()
+    {
+        var ini = IniFile.Load(Template());
+        var settings = FrameGenSettings.Defaults() with { Preset = "C" };
+
+        var ex = Assert.Throws<ArgumentException>(() => IniApplier.Apply(ini, settings));
+        Assert.Contains("Preset", ex.Message);
+    }
+
+    [Fact]
+    public void Defaults_MatchTheFactoryIni()
     {
         var settings = FrameGenSettings.Defaults();
-        Assert.Equal("SM86", settings.Router);
-        Assert.Equal("PTX", settings.KernelImage);
-        Assert.Equal(0, settings.HardwareBilinear);
-        Assert.Equal(3, settings.MaxGeneratedFrames);
+        Assert.Equal(1, settings.Enabled);
+        Assert.Equal(1, settings.Optimized);
+        Assert.Equal("Auto", settings.Router);
+        Assert.Equal("Auto", settings.KernelImage);
+        Assert.Equal("Auto", settings.Preset);
+        Assert.Equal(5, settings.MaxGeneratedFrames);
         Assert.Equal(1, settings.LoggingLevel);
     }
 }

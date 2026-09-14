@@ -7,17 +7,16 @@ public enum SmTarget
 {
     Unknown,
     Sm86,
-    Sm75,
+    Unsupported,
 }
 
 public sealed record GpuInfo(string? Name, string? ComputeCapability, string? DriverVersion, SmTarget Sm)
 {
-    public string? SuggestedRouter => Sm switch
-    {
-        SmTarget.Sm86 => "SM86",
-        SmTarget.Sm75 => "SM75",
-        _ => null,
-    };
+    public bool IsSupported => Sm != SmTarget.Unsupported;
+
+    public string? SuggestedRouter => Sm == SmTarget.Sm86 ? "SM86" : null;
+
+    public string Describe() => Name ?? (ComputeCapability != null ? $"compute capability {ComputeCapability}" : "unknown GPU");
 }
 
 public static partial class GpuDetector
@@ -56,20 +55,17 @@ public static partial class GpuDetector
         return new GpuInfo(name, computeCap, driver, Classify(computeCap, name));
     }
 
+    // Only Ampere consumer parts (SM86 / RTX 30 series) are supported; anything else that can be
+    // identified is reported as unsupported rather than silently routed.
     public static SmTarget Classify(string? computeCapability, string? name)
     {
-        if (!string.IsNullOrWhiteSpace(computeCapability))
-        {
-            string cap = computeCapability.Trim();
-            if (cap.StartsWith("8.", StringComparison.Ordinal)) return SmTarget.Sm86;
-            if (cap.StartsWith("7.", StringComparison.Ordinal)) return SmTarget.Sm75;
-        }
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            if (NameRegex().IsMatch(name)) return SmTarget.Sm86;
-            if (name.Contains("RTX 20", StringComparison.OrdinalIgnoreCase)) return SmTarget.Sm75;
-        }
-        return SmTarget.Unknown;
+        if (!string.IsNullOrWhiteSpace(computeCapability) && computeCapability.Trim() == "8.6")
+            return SmTarget.Sm86;
+        if (!string.IsNullOrWhiteSpace(name) && NameRegex().IsMatch(name))
+            return SmTarget.Sm86;
+        return string.IsNullOrWhiteSpace(computeCapability) && string.IsNullOrWhiteSpace(name)
+            ? SmTarget.Unknown
+            : SmTarget.Unsupported;
     }
 
     private static IEnumerable<string> NvidiaSmiCandidates()

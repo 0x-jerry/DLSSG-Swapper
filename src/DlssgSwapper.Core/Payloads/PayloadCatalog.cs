@@ -81,7 +81,10 @@ public sealed class PayloadCatalog
         dto.Templates,
         dto.EntryPoints
             .Select(e => new PayloadEntryPoint(e.File, e.Source, e.Sha256, e.Recommended, e.Note))
-            .ToList());
+            .ToList())
+    {
+        MaxGeneratedFrames = dto.MaxGeneratedFrames,
+    };
 
     private void VerifyPayload(PayloadVersion version, PayloadEntryPoint entryPoint)
     {
@@ -106,6 +109,7 @@ public sealed class PayloadCatalog
         public string Version { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public string SourceRoot { get; set; } = "";
+        public int MaxGeneratedFrames { get; set; } = 5;
         public Dictionary<string, string> Templates { get; set; } = new();
         public List<EntryPointDto> EntryPoints { get; set; } = new();
     }

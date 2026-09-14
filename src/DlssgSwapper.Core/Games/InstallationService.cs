@@ -50,7 +50,7 @@ public sealed class InstallationService
 {
     public const string IniFileName = "dlssg_sm86.ini";
     private static readonly string[] KnownProxyNames =
-        { "version.dll", "winmm.dll", "dinput8.dll", "winhttp.dll", "dxgi.dll" };
+        { "version.dll", "winmm.dll", "dbghelp.dll", "dinput8.dll", "dxgi.dll", "d3d12.dll" };
 
     private readonly PayloadCatalog _catalog;
     private readonly Func<Guid, BackupStore> _backupFactory;
@@ -154,7 +154,7 @@ public sealed class InstallationService
 
         string templatePath = _catalog.ResolveTemplatePath(version.Templates["default"]);
         var ini = IniFile.Load(templatePath);
-        IniApplier.Apply(ini, settings);
+        IniApplier.Apply(ini, ClampToRuntime(settings, version));
         string iniPath = Path.Combine(gameDir, IniFileName);
         AssertFileWritable(iniPath);
         ini.Save(iniPath);
@@ -215,6 +215,13 @@ public sealed class InstallationService
     }
 
     public bool IsOurs(string path) => IsOursAndWhich(path) != null;
+
+    private static FrameGenSettings ClampToRuntime(FrameGenSettings settings, PayloadVersion version)
+    {
+        if (settings.MaxGeneratedFrames is not int frames || frames <= version.MaxGeneratedFrames)
+            return settings;
+        return settings with { MaxGeneratedFrames = version.MaxGeneratedFrames };
+    }
 
     private PayloadEntryPoint? IsOursAndWhich(string path)
     {

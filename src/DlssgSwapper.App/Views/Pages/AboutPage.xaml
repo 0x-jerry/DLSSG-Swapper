@@ -19,6 +19,9 @@
                     <TextBlock Text="This machine" Style="{StaticResource SectionTitleText}" Margin="0,0,0,8" />
                     <TextBlock Text="{Binding GpuSummary}" Style="{StaticResource CaptionText}" />
                     <TextBlock Text="{Binding GpuRouterSuggestion}" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding GpuWarning}" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                               Visibility="{Binding HasGpuWarning, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
             </Border>
 

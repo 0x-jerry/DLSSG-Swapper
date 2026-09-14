@@ -5,7 +5,7 @@ namespace DlssgSwapper.Core.Tests;
 public class EntryPointDetectorTests
 {
     private static readonly string[] ProxyNames =
-        { "version.dll", "winmm.dll", "dinput8.dll", "winhttp.dll", "dxgi.dll" };
+        { "version.dll", "winmm.dll", "dbghelp.dll", "dinput8.dll", "dxgi.dll", "d3d12.dll" };
 
     [Fact]
     public void FindPresent_ReturnsNamesThatExist()

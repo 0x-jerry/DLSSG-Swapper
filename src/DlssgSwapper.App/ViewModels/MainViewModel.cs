@@ -17,12 +17,6 @@ using WinRT.Interop;
 
 namespace DlssgSwapper.App.ViewModels;
 
-public enum Preset
-{
-    Default,
-    Performance,
-}
-
 public enum VerificationSeverity
 {
     Neutral,
@@ -108,15 +102,18 @@ public sealed class MainViewModel : ObservableObject
     private GameProfileViewModel? _selectedProfile;
     private PayloadVersion? _selectedVersion;
     private EntryPointOption? _selectedEntryPoint;
-    private Preset _selectedPreset = Preset.Default;
-    private string _selectedRouter = "SM86";
-    private string _selectedKernelImage = "PTX";
-    private int _selectedMaxFrames = 3;
+    private bool _enabled = true;
+    private bool _optimized = true;
+    private string _selectedRouter = "Auto";
+    private string _selectedKernelImage = "Auto";
+    private string _selectedPreset = "Auto";
+    private int _selectedMaxFrames = 5;
     private int _selectedLoggingLevel = 1;
-    private bool _hardwareBilinear;
     private bool _overwriteForeign;
     private string _gpuSummary = "Detecting GPU…";
     private string _gpuRouterSuggestion = "";
+    private string _gpuWarning = "";
+    private bool _gpuSupported = true;
     private string _statusText = "Add or select a game to begin.";
     private string _entryPointHint = "";
     private VerificationReport? _verification;
@@ -128,11 +125,11 @@ public sealed class MainViewModel : ObservableObject
         _overwriteForeign = _settings.DefaultOverwriteForeign;
 
         Versions = new ObservableCollection<PayloadVersion>(_catalog.Versions);
-        Routers = new ObservableCollection<string> { "SM86", "SM75" };
-        KernelImages = new ObservableCollection<string> { "PTX", "Auto", "Cubin" };
-        MaxFrames = new ObservableCollection<int> { 0, 1, 2, 3 };
+        Routers = new ObservableCollection<string> { "Auto", "SM86" };
+        KernelImages = new ObservableCollection<string> { "Auto", "Cubin", "PTX", "Original" };
+        MaxFrames = new ObservableCollection<int>();
         LoggingLevels = new ObservableCollection<int> { 0, 1, 2, 3 };
-        Presets = new ObservableCollection<Preset> { Preset.Default, Preset.Performance };
+        Presets = new ObservableCollection<string> { "Auto", "A", "B" };
 
         AddGameCommand = new AsyncRelayCommand(AddGame);
         ScanSteamCommand = new AsyncRelayCommand(ScanSteam);
@@ -156,7 +153,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> KernelImages { get; }
     public ObservableCollection<int> MaxFrames { get; }
     public ObservableCollection<int> LoggingLevels { get; }
-    public ObservableCollection<Preset> Presets { get; }
+    public ObservableCollection<string> Presets { get; }
     public ObservableCollection<EntryPointOption> EntryPointOptions { get; } = new();
 
     public AsyncRelayCommand AddGameCommand { get; }
@@ -218,8 +215,8 @@ public sealed class MainViewModel : ObservableObject
             if (!Set(ref _selectedVersion, value)) return;
             if (value != null)
             {
+                RebuildMaxFrames(value.MaxGeneratedFrames);
                 RebuildEntryPoints(preferredFileName: null);
-                ApplySchemaDefaults();
             }
             RaiseCommandStates();
         }
@@ -235,25 +232,30 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public Preset SelectedPreset
-    {
-        get => _selectedPreset;
-        set
-        {
-            if (!Set(ref _selectedPreset, value)) return;
-            ApplyPreset();
-        }
-    }
-
+    public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
+    public bool Optimized { get => _optimized; set => Set(ref _optimized, value); }
     public string SelectedRouter { get => _selectedRouter; set => Set(ref _selectedRouter, value); }
     public string SelectedKernelImage { get => _selectedKernelImage; set => Set(ref _selectedKernelImage, value); }
+    public string SelectedPreset { get => _selectedPreset; set => Set(ref _selectedPreset, value); }
     public int SelectedMaxFrames { get => _selectedMaxFrames; set => Set(ref _selectedMaxFrames, value); }
     public int SelectedLoggingLevel { get => _selectedLoggingLevel; set => Set(ref _selectedLoggingLevel, value); }
-    public bool HardwareBilinear { get => _hardwareBilinear; set => Set(ref _hardwareBilinear, value); }
     public bool OverwriteForeign { get => _overwriteForeign; set => Set(ref _overwriteForeign, value); }
 
     public string GpuSummary { get => _gpuSummary; set => Set(ref _gpuSummary, value); }
     public string GpuRouterSuggestion { get => _gpuRouterSuggestion; set => Set(ref _gpuRouterSuggestion, value); }
+
+    public string GpuWarning
+    {
+        get => _gpuWarning;
+        private set
+        {
+            if (Set(ref _gpuWarning, value)) OnPropertyChanged(nameof(HasGpuWarning));
+        }
+    }
+
+    public bool GpuSupported { get => _gpuSupported; private set => Set(ref _gpuSupported, value); }
+
+    public bool HasGpuWarning => _gpuWarning.Length > 0;
 
     public string StatusText { get => _statusText; set => Set(ref _statusText, value); }
 
@@ -291,9 +293,11 @@ public sealed class MainViewModel : ObservableObject
 
     private FrameGenSettings CurrentSettings => new()
     {
+        Enabled = _enabled ? 1 : 0,
+        Optimized = _optimized ? 1 : 0,
         Router = _selectedRouter,
         KernelImage = _selectedKernelImage,
-        HardwareBilinear = _hardwareBilinear ? 1 : 0,
+        Preset = _selectedPreset,
         MaxGeneratedFrames = _selectedMaxFrames,
         LoggingLevel = _selectedLoggingLevel,
     };
@@ -335,15 +339,26 @@ public sealed class MainViewModel : ObservableObject
         var settings = profile.Settings;
         if (settings != null)
         {
+            if (settings.Enabled != null) Enabled = settings.Enabled == 1;
+            if (settings.Optimized != null) Optimized = settings.Optimized == 1;
             if (settings.Router != null) SelectedRouter = settings.Router;
             if (settings.KernelImage != null) SelectedKernelImage = settings.KernelImage;
+            if (settings.Preset != null) SelectedPreset = settings.Preset;
             if (settings.MaxGeneratedFrames != null) SelectedMaxFrames = settings.MaxGeneratedFrames.Value;
             if (settings.LoggingLevel != null) SelectedLoggingLevel = settings.LoggingLevel.Value;
-            HardwareBilinear = settings.HardwareBilinear == 1;
         }
 
         if (SelectedVersion != null)
             RebuildEntryPoints(profile.PayloadEntryPoint);
+    }
+
+    private void RebuildMaxFrames(int ceiling)
+    {
+        MaxFrames.Clear();
+        for (int frames = 0; frames <= ceiling; frames++)
+            MaxFrames.Add(frames);
+        if (!MaxFrames.Contains(_selectedMaxFrames))
+            SelectedMaxFrames = ceiling;
     }
 
     private void RebuildEntryPoints(string? preferredFileName)
@@ -379,23 +394,6 @@ public sealed class MainViewModel : ObservableObject
 
     private static bool NameEq(EntryPointOption option, string? fileName) =>
         fileName != null && string.Equals(option.EntryPoint.FileName, fileName, StringComparison.OrdinalIgnoreCase);
-
-    private void ApplySchemaDefaults()
-    {
-        var defaults = FrameGenSettings.Defaults();
-        SelectedRouter = defaults.Router ?? SelectedRouter;
-        SelectedKernelImage = defaults.KernelImage ?? SelectedKernelImage;
-        SelectedMaxFrames = defaults.MaxGeneratedFrames ?? SelectedMaxFrames;
-        SelectedLoggingLevel = defaults.LoggingLevel ?? SelectedLoggingLevel;
-        HardwareBilinear = defaults.HardwareBilinear == 1;
-        ApplyPreset();
-    }
-
-    private void ApplyPreset()
-    {
-        if (_selectedPreset == Preset.Performance)
-            HardwareBilinear = true;
-    }
 
     private void ConfigureGame(GameProfileViewModel profile)
     {
@@ -515,6 +513,13 @@ public sealed class MainViewModel : ObservableObject
     {
         var item = _selectedProfile;
         if (item == null || _selectedVersion == null || _selectedEntryPoint == null) return;
+
+        if (!GpuSupported)
+        {
+            SetStatus(GpuWarning);
+            Dialogs.Error("Unsupported GPU", GpuWarning);
+            return;
+        }
 
         try
         {
@@ -647,5 +652,10 @@ public sealed class MainViewModel : ObservableObject
         GpuRouterSuggestion = info.SuggestedRouter != null ? $"Suggested Router: {info.SuggestedRouter}" : "";
         if (info.SuggestedRouter != null)
             SelectedRouter = info.SuggestedRouter;
+
+        GpuSupported = info.IsSupported;
+        GpuWarning = info.IsSupported
+            ? ""
+            : $"Only RTX 30 series (SM86) is supported. This machine reports {info.Describe()}.";
     }
 }

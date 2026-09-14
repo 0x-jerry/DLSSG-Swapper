@@ -30,36 +30,51 @@ public class InstallationServiceTests : IDisposable
         if (Directory.Exists(_backupRoot)) Directory.Delete(_backupRoot, recursive: true);
     }
 
-    private PayloadVersion Native => _catalog.GetVersion("0.2.4")!;
+    private PayloadVersion Current => _catalog.GetVersion("0.3.0")!;
+    private PayloadVersion Legacy => _catalog.GetVersion("0.3.0-310.1")!;
     private string InstalledIni => Path.Combine(_gameDir, InstallationService.IniFileName);
 
-    private FrameGenSettings NativeDefaults => FrameGenSettings.Defaults();
+    private static FrameGenSettings Defaults => FrameGenSettings.Defaults();
 
     [Fact]
     public void Install_WritesMatchingDllAndIni()
     {
-        var entry = Native.FindEntryPoint("version.dll")!;
-        _service.Install(_profile, Native, entry, NativeDefaults);
+        var entry = Current.FindEntryPoint("version.dll")!;
+        _service.Install(_profile, Current, entry, Defaults);
 
         string dll = Path.Combine(_gameDir, "version.dll");
         Assert.Equal(entry.Sha256, Hashing.Sha256File(dll), ignoreCase: true);
         var ini = IniFile.Load(InstalledIni);
-        Assert.Equal("SM86", ini.Get("Compatibility", "Router"));
-        Assert.Equal("PTX", ini.Get("Compatibility", "KernelImage"));
-        Assert.Equal("3", ini.Get("FrameGeneration", "MaxGeneratedFrames"));
+        Assert.Equal("1", ini.Get("General", "Enabled"));
+        Assert.Equal("1", ini.Get("FrameGeneration", "Optimized"));
+        Assert.Equal("5", ini.Get("FrameGeneration", "MaxGeneratedFrames"));
+        Assert.Equal("Auto", ini.Get("Compatibility", "Router"));
+        Assert.Equal("Auto", ini.Get("Compatibility", "KernelImage"));
+        Assert.Equal("Auto", ini.Get("Compatibility", "Preset"));
+        Assert.Equal("1", ini.Get("Logging", "Level"));
 
         var inspect = _service.Inspect(_profile);
         Assert.Equal(InstallKind.Installed, inspect.Kind);
         Assert.Equal("version.dll", inspect.InstalledEntryPoint!.FileName);
+        Assert.Same(Current, inspect.InstalledVersion);
+    }
+
+    [Fact]
+    public void Install_ClampsFramesToTheRuntimeCeiling()
+    {
+        var entry = Legacy.FindEntryPoint("version.dll")!;
+        _service.Install(_profile, Legacy, entry, Defaults with { MaxGeneratedFrames = 5 });
+
+        Assert.Equal("3", IniFile.Load(InstalledIni).Get("FrameGeneration", "MaxGeneratedFrames"));
     }
 
     [Fact]
     public void SwapEntryPoint_KeepsOnlyNewProxy()
     {
-        var version = Native.FindEntryPoint("version.dll")!;
-        var winmm = Native.FindEntryPoint("winmm.dll")!;
-        _service.Install(_profile, Native, version, NativeDefaults);
-        _service.Install(_profile, Native, winmm, NativeDefaults);
+        var version = Current.FindEntryPoint("version.dll")!;
+        var winmm = Current.FindEntryPoint("winmm.dll")!;
+        _service.Install(_profile, Current, version, Defaults);
+        _service.Install(_profile, Current, winmm, Defaults);
 
         Assert.False(File.Exists(Path.Combine(_gameDir, "version.dll")));
         Assert.Equal(winmm.Sha256, Hashing.Sha256File(Path.Combine(_gameDir, "winmm.dll")), ignoreCase: true);
@@ -78,7 +93,7 @@ public class InstallationServiceTests : IDisposable
         File.WriteAllBytes(Path.Combine(_gameDir, "version.dll"), originalDll);
         File.WriteAllBytes(InstalledIni, originalIni);
 
-        _service.Install(_profile, Native, Native.FindEntryPoint("version.dll")!, NativeDefaults, overwriteForeignFile: true);
+        _service.Install(_profile, Current, Current.FindEntryPoint("version.dll")!, Defaults, overwriteForeignFile: true);
         _service.Uninstall(_profile);
 
         Assert.Equal(originalDll, File.ReadAllBytes(Path.Combine(_gameDir, "version.dll")));
@@ -89,7 +104,7 @@ public class InstallationServiceTests : IDisposable
     public void Uninstall_WithNoOriginals_ReturnsToPreInstallListing()
     {
         string[] before = Directory.GetFileSystemEntries(_gameDir);
-        _service.Install(_profile, Native, Native.FindEntryPoint("winmm.dll")!, NativeDefaults);
+        _service.Install(_profile, Current, Current.FindEntryPoint("winmm.dll")!, Defaults);
         _service.Uninstall(_profile);
 
         Assert.Equal(before.OrderBy(x => x), Directory.GetFileSystemEntries(_gameDir).OrderBy(x => x));
@@ -102,9 +117,9 @@ public class InstallationServiceTests : IDisposable
         File.WriteAllBytes(Path.Combine(_gameDir, "dxgi.dll"), foreign);
 
         Assert.Throws<ForeignFileException>(() =>
-            _service.Install(_profile, Native, Native.FindEntryPoint("dxgi.dll")!, NativeDefaults));
+            _service.Install(_profile, Current, Current.FindEntryPoint("dxgi.dll")!, Defaults));
 
-        _service.Install(_profile, Native, Native.FindEntryPoint("dxgi.dll")!, NativeDefaults, overwriteForeignFile: true);
+        _service.Install(_profile, Current, Current.FindEntryPoint("dxgi.dll")!, Defaults, overwriteForeignFile: true);
         string ours = Hashing.Sha256File(Path.Combine(_gameDir, "dxgi.dll"));
         Assert.NotEqual(Convert.ToHexString(foreign).ToLowerInvariant(), ours);
 
@@ -116,11 +131,11 @@ public class InstallationServiceTests : IDisposable
     public void LockedTargetFile_BlocksInstall()
     {
         string target = Path.Combine(_gameDir, "version.dll");
-        File.Copy(_catalog.ResolveBinaryPath(Native, Native.FindEntryPoint("version.dll")!), target);
+        File.Copy(_catalog.ResolveBinaryPath(Current, Current.FindEntryPoint("version.dll")!), target);
         using var handle = new FileStream(target, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
         Assert.Throws<GameRunningException>(() =>
-            _service.Install(_profile, Native, Native.FindEntryPoint("version.dll")!, NativeDefaults));
+            _service.Install(_profile, Current, Current.FindEntryPoint("version.dll")!, Defaults));
     }
 
     [Fact]
@@ -131,7 +146,7 @@ public class InstallationServiceTests : IDisposable
         Assert.Equal(FileOrigin.Absent, inspection.ProxyOrigin);
 
         string dll = Path.Combine(_gameDir, "version.dll");
-        File.Copy(_catalog.ResolveBinaryPath(Native, Native.FindEntryPoint("version.dll")!), dll);
+        File.Copy(_catalog.ResolveBinaryPath(Current, Current.FindEntryPoint("version.dll")!), dll);
 
         inspection = _service.Inspect(_profile);
         Assert.Equal(InstallKind.Partial, inspection.Kind);
@@ -144,7 +159,7 @@ public class InstallationServiceTests : IDisposable
     [Fact]
     public void ModifiedIni_IsLeftAloneOnUninstall()
     {
-        _service.Install(_profile, Native, Native.FindEntryPoint("version.dll")!, NativeDefaults);
+        _service.Install(_profile, Current, Current.FindEntryPoint("version.dll")!, Defaults);
         File.WriteAllText(InstalledIni, "[Compatibility]\nRouter=SM75\n");
 
         var warnings = _service.Uninstall(_profile);
@@ -159,10 +174,10 @@ public class InstallationServiceTests : IDisposable
         byte[] originalDll = { 0x01, 0x02 };
         File.WriteAllBytes(Path.Combine(_gameDir, "version.dll"), originalDll);
 
-        var version = Native.FindEntryPoint("version.dll")!;
-        var winmm = Native.FindEntryPoint("winmm.dll")!;
-        _service.Install(_profile, Native, version, NativeDefaults, overwriteForeignFile: true);
-        _service.Install(_profile, Native, winmm, NativeDefaults);
+        var version = Current.FindEntryPoint("version.dll")!;
+        var winmm = Current.FindEntryPoint("winmm.dll")!;
+        _service.Install(_profile, Current, version, Defaults, overwriteForeignFile: true);
+        _service.Install(_profile, Current, winmm, Defaults);
         _service.Uninstall(_profile);
 
         Assert.Equal(originalDll, File.ReadAllBytes(Path.Combine(_gameDir, "version.dll")));

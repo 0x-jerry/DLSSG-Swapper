@@ -12,24 +12,42 @@ public class GpuDetectorTests
         Assert.Equal("8.6", info.ComputeCapability);
         Assert.Equal("591.86", info.DriverVersion);
         Assert.Equal(SmTarget.Sm86, info.Sm);
+        Assert.True(info.IsSupported);
         Assert.Equal("SM86", info.SuggestedRouter);
     }
 
     [Fact]
-    public void ParseOutput_TuringCsv_YieldsSm75()
+    public void ParseOutput_TuringCsv_IsUnsupported()
     {
         var info = GpuDetector.ParseOutput("\"NVIDIA GeForce RTX 2060 Super\", 7.5, 591.86");
         Assert.Equal("NVIDIA GeForce RTX 2060 Super", info.Name);
-        Assert.Equal(SmTarget.Sm75, info.Sm);
-        Assert.Equal("SM75", info.SuggestedRouter);
+        Assert.Equal(SmTarget.Unsupported, info.Sm);
+        Assert.False(info.IsSupported);
+        Assert.Null(info.SuggestedRouter);
+    }
+
+    [Fact]
+    public void ParseOutput_AdaCsv_IsUnsupported()
+    {
+        var info = GpuDetector.ParseOutput("NVIDIA GeForce RTX 4090, 8.9, 591.86");
+        Assert.Equal(SmTarget.Unsupported, info.Sm);
+        Assert.False(info.IsSupported);
     }
 
     [Fact]
     public void Classify_FallsBackToNamePattern()
     {
         Assert.Equal(SmTarget.Sm86, GpuDetector.Classify(null, "NVIDIA GeForce RTX 3060"));
-        Assert.Equal(SmTarget.Sm75, GpuDetector.Classify(null, "NVIDIA GeForce RTX 2070"));
-        Assert.Equal(SmTarget.Unknown, GpuDetector.Classify(null, "AMD Radeon RX 6800 XT"));
+        Assert.Equal(SmTarget.Unsupported, GpuDetector.Classify(null, "NVIDIA GeForce RTX 2070"));
+        Assert.Equal(SmTarget.Unsupported, GpuDetector.Classify(null, "AMD Radeon RX 6800 XT"));
+        Assert.Equal(SmTarget.Unknown, GpuDetector.Classify(null, null));
+    }
+
+    [Fact]
+    public void Describe_UsesNameThenComputeCapability()
+    {
+        Assert.Equal("RTX 3080", GpuDetector.ParseOutput("RTX 3080, 8.6, 591.86").Describe());
+        Assert.Equal("compute capability 7.5", new GpuInfo(null, "7.5", null, SmTarget.Unsupported).Describe());
     }
 
     [Fact]

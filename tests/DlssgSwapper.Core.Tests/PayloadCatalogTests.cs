@@ -7,43 +7,56 @@ public class PayloadCatalogTests
     private static string PayloadRoot => Path.Combine(AppContext.BaseDirectory, "payloads");
 
     [Fact]
-    public void Load_ReturnsSingleVersionWithAllEntryPoints()
+    public void Load_ReturnsBoth3109And3101Builds()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
 
-        Assert.Single(catalog.Versions);
-        var native = catalog.GetVersion("0.2.4");
-        Assert.NotNull(native);
-        Assert.Equal(5, native.EntryPoints.Count);
-        Assert.Equal("version.dll", native.EntryPoints.First(e => e.Recommended).FileName);
-        Assert.Null(catalog.GetVersion("0.1.0"));
+        Assert.Equal(2, catalog.Versions.Count);
+        var current = catalog.GetVersion("0.3.0");
+        Assert.NotNull(current);
+        Assert.Equal(5, current.MaxGeneratedFrames);
+        Assert.Equal(6, current.EntryPoints.Count);
+        Assert.Equal("version.dll", current.EntryPoints.First(e => e.Recommended).FileName);
+        Assert.Equal(3, catalog.GetVersion("0.3.0-310.1")!.MaxGeneratedFrames);
+        Assert.Null(catalog.GetVersion("0.2.4"));
     }
 
     [Fact]
     public void Load_AcceptsInstalledDllHashes()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var native = catalog.GetVersion("0.2.4")!;
 
-        foreach (var entryPoint in native.EntryPoints)
-        {
-            string path = catalog.ResolveBinaryPath(native, entryPoint);
-            Assert.Equal(entryPoint.Sha256, Hashing.Sha256File(path), ignoreCase: true);
-        }
+        foreach (var version in catalog.Versions)
+            foreach (var entryPoint in version.EntryPoints)
+            {
+                string path = catalog.ResolveBinaryPath(version, entryPoint);
+                Assert.Equal(entryPoint.Sha256, Hashing.Sha256File(path), ignoreCase: true);
+            }
     }
 
     [Fact]
     public void FindBySha256_ResolvesInstalledProxy()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(
-            catalog.GetVersion("0.2.4")!,
-            catalog.GetVersion("0.2.4")!.FindEntryPoint("winmm.dll")!));
+        var current = catalog.GetVersion("0.3.0")!;
+        string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(current, current.FindEntryPoint("dbghelp.dll")!));
 
         var entry = catalog.FindBySha256(hash);
         Assert.NotNull(entry);
-        Assert.Equal("winmm.dll", entry.FileName);
-        Assert.NotNull(catalog.FindVersionOf(hash));
+        Assert.Equal("dbghelp.dll", entry.FileName);
+        Assert.Same(current, catalog.FindVersionOf(hash));
+    }
+
+    [Fact]
+    public void FindBySha256_DistinguishesTheTwoBudgets()
+    {
+        var catalog = PayloadCatalog.Load(PayloadRoot);
+        var current = catalog.GetVersion("0.3.0")!;
+        var legacy = catalog.GetVersion("0.3.0-310.1")!;
+
+        string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(legacy, legacy.FindEntryPoint("version.dll")!));
+        Assert.Same(legacy, catalog.FindVersionOf(hash));
+        Assert.NotSame(current, catalog.FindVersionOf(hash));
     }
 
     [Fact]
@@ -53,21 +66,21 @@ public class PayloadCatalogTests
         try
         {
             Directory.CreateDirectory(tempRoot);
-            Directory.CreateDirectory(Path.Combine(tempRoot, "bin", "0.2.4"));
+            Directory.CreateDirectory(Path.Combine(tempRoot, "bin", "0.3.0"));
             Directory.CreateDirectory(Path.Combine(tempRoot, "templates"));
-            File.WriteAllText(Path.Combine(tempRoot, "bin", "0.2.4", "version.dll"), "not a dll");
-            File.WriteAllText(Path.Combine(tempRoot, "templates", "native-default.ini"), "[Compatibility]\nRouter=SM86\n");
+            File.WriteAllText(Path.Combine(tempRoot, "bin", "0.3.0", "version.dll"), "not a dll");
+            File.WriteAllText(Path.Combine(tempRoot, "templates", "sm86-default.ini"), "[General]\nEnabled=1\n");
             File.WriteAllText(Path.Combine(tempRoot, "catalog.json"), """
             {
               "versions": [{
-                "version": "0.2.4",
-                "displayName": "Native 0.2.4",
-                "iniSchema": "native",
+                "version": "0.3.0",
+                "displayName": "0.3.0",
                 "sourceRoot": "external/dlssg_for_sm86",
-                "templates": { "default": "templates/native-default.ini" },
+                "maxGeneratedFrames": 5,
+                "templates": { "default": "templates/sm86-default.ini" },
                 "entryPoints": [
                   { "file": "version.dll", "source": "version.dll",
-                    "sha256": "c844646d835a7b88ed1382eea80403d38b433f8ac09cf92581c73698c44ae7c2",
+                    "sha256": "a22d2453f25d7df3fdc0d6d683c21f01769a115439d58f1341183a75faaf8c7d",
                     "recommended": true }
                 ]
               }]
