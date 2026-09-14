@@ -1,16 +1,16 @@
-using System.Windows.Controls;
-using System.Windows.Input;
 using DlssgSwapper.App.ViewModels;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 
 namespace DlssgSwapper.App.Views.Pages;
 
-public partial class GamesPage : Page
+public sealed partial class GamesPage : Page
 {
     public GamesPage() => InitializeComponent();
 
-    private void OnRowDoubleClick(object sender, MouseButtonEventArgs e)
+    private void OnRowDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm && vm.SelectedProfile != null)
-            vm.ConfigureGameCommand.Execute(vm.SelectedProfile);
+            vm.SelectedProfile.ConfigureCommand.Execute(null);
     }
 }

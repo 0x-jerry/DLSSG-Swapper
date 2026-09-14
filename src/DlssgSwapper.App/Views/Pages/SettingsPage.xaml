@@ -1,9 +1,7 @@
 <Page x:Class="DlssgSwapper.App.Views.Pages.SettingsPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-      Title="Settings">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="{StaticResource PagePadding}">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,18,28,28">
         <StackPanel MaxWidth="720" HorizontalAlignment="Left">
             <TextBlock Text="Settings" Style="{StaticResource PageTitleText}" />
             <TextBlock Style="{StaticResource PageSubtitleText}" Margin="0,3,0,18"
@@ -12,8 +10,8 @@
             <Border Style="{StaticResource CardPanel}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                        <ui:SymbolIcon Symbol="PaintBrush24" FontSize="18"
-                                       Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
+                        <FontIcon Glyph="&#xE790;" FontSize="18"
+                                  Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Appearance" Style="{StaticResource SectionTitleText}"
                                    Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
@@ -24,7 +22,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="Theme" Style="{StaticResource FieldLabelText}" Margin="0,0,12,0" />
                         <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}"
-                                  SelectedItem="{Binding SelectedTheme}" MaxWidth="240" HorizontalAlignment="Left" />
+                                  SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" MaxWidth="240" HorizontalAlignment="Left" />
                     </Grid>
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,12,0,0"
                                Text="System follows the Windows light/dark setting. The choice is remembered on this machine." />
@@ -34,13 +32,13 @@
             <Border Style="{StaticResource CardPanel}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                        <ui:SymbolIcon Symbol="Shield24" FontSize="18"
-                                       Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
+                        <FontIcon Glyph="&#xEA18;" FontSize="18"
+                                  Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Installing" Style="{StaticResource SectionTitleText}"
                                    Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                     <CheckBox Content="Allow overwriting foreign files by default"
-                              IsChecked="{Binding DefaultOverwriteForeign}" />
+                              IsChecked="{Binding DefaultOverwriteForeign, Mode=TwoWay}" />
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,8,0,0"
                                Text="Foreign files (for example another mod's dxgi.dll) are always backed up before replacement. This only pre-ticks the per-game confirmation." />
                 </StackPanel>
@@ -49,20 +47,20 @@
             <Border Style="{StaticResource CardPanel}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                        <ui:SymbolIcon Symbol="FolderOpen24" FontSize="18"
-                                       Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
+                        <FontIcon Glyph="&#xE838;" FontSize="18"
+                                  Foreground="{StaticResource BrandBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Storage" Style="{StaticResource SectionTitleText}"
                                    Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                     <TextBlock Text="Backups" Style="{StaticResource FieldLabelText}" />
-                    <TextBlock Style="{StaticResource MonoText}" Margin="0,4,0,0"
-                               Text="{Binding BackupRoot}" />
-                    <ui:Button Content="Open backups folder" Command="{Binding OpenBackupFolderCommand}"
-                               Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,12,0,0">
-                        <ui:Button.Icon>
-                            <ui:SymbolIcon Symbol="FolderOpen24" />
-                        </ui:Button.Icon>
-                    </ui:Button>
+                    <TextBlock Style="{StaticResource MonoText}" Margin="0,4,0,0" Text="{Binding BackupRoot}" />
+                    <Button Command="{Binding OpenBackupFolderCommand}"
+                            Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,12,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE838;" FontSize="14" />
+                            <TextBlock Text="Open backups folder" />
+                        </StackPanel>
+                    </Button>
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,10,0,0"
                                Text="Original files are stored here once per game. Keep them until you have confirmed the mod works, so Uninstall can restore byte-identical originals." />
                 </StackPanel>

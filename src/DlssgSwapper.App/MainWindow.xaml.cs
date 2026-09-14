@@ -1,59 +1,126 @@
 using System.ComponentModel;
-using System.Windows;
-using System.Windows.Input;
 using DlssgSwapper.App.Configuration;
-using DlssgSwapper.App.Navigation;
 using DlssgSwapper.App.ViewModels;
 using DlssgSwapper.App.Views.Pages;
-using Wpf.Ui.Controls;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Navigation;
+using Windows.System;
 
 namespace DlssgSwapper.App;
 
-public partial class MainWindow
+public sealed partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel = new();
-    private readonly List<AppSection> _history = new();
-    private int _historyIndex = -1;
-    private bool _replayingHistory;
+    private bool _syncingSelection;
 
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = _viewModel;
+        ExtendsContentIntoTitleBar = true;
 
-        RootNavigation.SetPageProviderService(new AppPageProvider(CreatePage));
-        RootNavigation.Navigated += OnNavigated;
-        _viewModel.NavigationRequested += OnNavigationRequested;
+        _viewModel.NavigationRequested += NavigateTo;
         _viewModel.BackRequested += NavigateBack;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        ContentFrame.Navigated += OnNavigated;
+        RootGrid.PointerPressed += OnPointerPressed;
+        AddAccelerator(VirtualKey.GoBack, VirtualKeyModifiers.None, NavigateBack);
+        AddAccelerator(VirtualKey.GoForward, VirtualKeyModifiers.None, NavigateForward);
+        AddAccelerator(VirtualKey.Left, VirtualKeyModifiers.Menu, NavigateBack);
+        AddAccelerator(VirtualKey.Right, VirtualKeyModifiers.Menu, NavigateForward);
 
-        PreviewMouseDown += OnPreviewMouseDown;
-        PreviewKeyDown += OnPreviewKeyDown;
-
-        Loaded += OnLoaded;
+        SyncSelection(AppSection.Games);
+        NavigateTo(AppSection.Games);
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnNavigated(object sender, NavigationEventArgs e)
     {
-        Loaded -= OnLoaded;
-        RootNavigation.Navigate(typeof(GamesPage));
-        ThemeService.Apply(_viewModel.SelectedTheme, this, WindowBackdropType.Mica);
+        if (e.Content is FrameworkElement page) page.DataContext = _viewModel;
+        SyncSelection(SectionOf(e.SourcePageType));
     }
 
-    private object? CreatePage(Type pageType)
+    private void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (Activator.CreateInstance(pageType) is not FrameworkElement page) return null;
-        page.DataContext = _viewModel;
-        return page;
+        if (_syncingSelection || args.SelectedItem is not NavigationViewItem item) return;
+        NavigateTo(SectionOf(item.Tag as string));
     }
 
-    private void OnNavigationRequested(AppSection section)
+    private void SyncSelection(AppSection section)
+    {
+        _syncingSelection = true;
+        RootNavigation.SelectedItem = ItemFor(section);
+        _syncingSelection = false;
+    }
+
+    private void NavigateTo(AppSection section)
     {
         if (section == AppSection.Install && !_viewModel.HasSelectedProfile) return;
-        RootNavigation.Navigate(SectionPage(section));
+
+        var pageType = PageFor(section);
+        if (ContentFrame.CurrentSourcePageType == pageType) return;
+        ContentFrame.Navigate(pageType);
     }
 
-    private static Type SectionPage(AppSection section) => section switch
+    private void NavigateBack()
+    {
+        if (ContentFrame.CanGoBack) ContentFrame.GoBack();
+    }
+
+    private void NavigateForward()
+    {
+        if (ContentFrame.CanGoForward) ContentFrame.GoForward();
+    }
+
+    private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        var props = e.GetCurrentPoint(RootGrid).Properties;
+        if (props.IsXButton1Pressed)
+        {
+            NavigateBack();
+            e.Handled = true;
+        }
+        else if (props.IsXButton2Pressed)
+        {
+            NavigateForward();
+            e.Handled = true;
+        }
+    }
+
+    private void AddAccelerator(VirtualKey key, VirtualKeyModifiers modifiers, Action action)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key, Modifiers = modifiers };
+        accelerator.Invoked += (_, args) =>
+        {
+            action();
+            args.Handled = true;
+        };
+        RootGrid.KeyboardAccelerators.Add(accelerator);
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.SelectedTheme))
+            ThemeService.Apply(_viewModel.SelectedTheme, this);
+    }
+
+    private static AppSection SectionOf(string? tag) => tag switch
+    {
+        "Install" => AppSection.Install,
+        "Settings" => AppSection.Settings,
+        "About" => AppSection.About,
+        _ => AppSection.Games,
+    };
+
+    private static AppSection SectionOf(Type pageType) => pageType switch
+    {
+        var t when t == typeof(InstallPage) => AppSection.Install,
+        var t when t == typeof(SettingsPage) => AppSection.Settings,
+        var t when t == typeof(AboutPage) => AppSection.About,
+        _ => AppSection.Games,
+    };
+
+    private static Type PageFor(AppSection section) => section switch
     {
         AppSection.Install => typeof(InstallPage),
         AppSection.Settings => typeof(SettingsPage),
@@ -61,86 +128,11 @@ public partial class MainWindow
         _ => typeof(GamesPage),
     };
 
-    private static AppSection SectionOf(Type pageType) => pageType switch
+    private NavigationViewItem? ItemFor(AppSection section)
     {
-        var type when type == typeof(InstallPage) => AppSection.Install,
-        var type when type == typeof(SettingsPage) => AppSection.Settings,
-        var type when type == typeof(AboutPage) => AppSection.About,
-        _ => AppSection.Games,
-    };
-
-    private void OnNavigated(object sender, NavigatedEventArgs e)
-    {
-        if (_replayingHistory || e.Page is not FrameworkElement page) return;
-
-        var section = SectionOf(page.GetType());
-        if (_historyIndex >= 0 && _history[_historyIndex] == section) return;
-
-        _history.RemoveRange(_historyIndex + 1, _history.Count - _historyIndex - 1);
-        _history.Add(section);
-        _historyIndex = _history.Count - 1;
-    }
-
-    private void NavigateBack()
-    {
-        if (_historyIndex <= 0) return;
-        ReplayHistory(_historyIndex - 1);
-    }
-
-    private void NavigateForward()
-    {
-        if (_historyIndex >= _history.Count - 1) return;
-        ReplayHistory(_historyIndex + 1);
-    }
-
-    private void ReplayHistory(int index)
-    {
-        _historyIndex = index;
-        _replayingHistory = true;
-        try
-        {
-            RootNavigation.Navigate(SectionPage(_history[index]));
-        }
-        finally
-        {
-            _replayingHistory = false;
-        }
-    }
-
-    private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ChangedButton == MouseButton.XButton1)
-        {
-            NavigateBack();
-            e.Handled = true;
-        }
-        else if (e.ChangedButton == MouseButton.XButton2)
-        {
-            NavigateForward();
-            e.Handled = true;
-        }
-    }
-
-    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
-        bool alt = e.KeyboardDevice.Modifiers == ModifierKeys.Alt;
-
-        if (key == Key.BrowserBack || (alt && key == Key.Left))
-        {
-            NavigateBack();
-            e.Handled = true;
-        }
-        else if (key == Key.BrowserForward || (alt && key == Key.Right))
-        {
-            NavigateForward();
-            e.Handled = true;
-        }
-    }
-
-    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(MainViewModel.SelectedTheme))
-            ThemeService.Apply(_viewModel.SelectedTheme, this, WindowBackdropType.Mica);
+        string tag = section.ToString();
+        return RootNavigation.MenuItems.Concat(RootNavigation.FooterMenuItems)
+            .OfType<NavigationViewItem>()
+            .FirstOrDefault(item => (item.Tag as string) == tag);
     }
 }

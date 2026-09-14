@@ -1,24 +1,28 @@
-using System.Windows;
-using Wpf.Ui.Appearance;
-using Wpf.Ui.Controls;
+using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 
 namespace DlssgSwapper.App.Configuration;
 
 public static class ThemeService
 {
-    public static void Apply(AppTheme theme, Window window, WindowBackdropType backdrop)
+    public static void Apply(AppTheme theme, Window window)
     {
-        if (theme == AppTheme.System)
+        if (window.Content is FrameworkElement root)
         {
-            ApplicationThemeManager.ApplySystemTheme(true);
-            SystemThemeWatcher.Watch(window, backdrop);
-            return;
+            root.RequestedTheme = theme switch
+            {
+                AppTheme.Light => ElementTheme.Light,
+                AppTheme.Dark => ElementTheme.Dark,
+                _ => ElementTheme.Default,
+            };
         }
 
-        SystemThemeWatcher.UnWatch(window);
-        ApplicationThemeManager.Apply(
-            theme == AppTheme.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light,
-            backdrop,
-            true);
+        if (window.SystemBackdrop != null) return;
+
+        if (MicaController.IsSupported())
+            window.SystemBackdrop = new MicaBackdrop();
+        else if (DesktopAcrylicController.IsSupported())
+            window.SystemBackdrop = new DesktopAcrylicBackdrop();
     }
 }

@@ -4,7 +4,9 @@ A Windows desktop manager for the [dlssg_for_sm86](https://github.com/sdli1995/d
 DLSS Frame Generation mod: install, swap between payload versions and proxy
 entry points, edit the mod's INI, back up originals, and uninstall cleanly.
 
-The UI is a Windows 11 Fluent shell (WPF-UI) with a left navigation pane
+The UI is a Windows 11 Fluent shell built on WinUI 3
+([microsoft-ui-xaml](https://github.com/microsoft/microsoft-ui-xaml) /
+Windows App SDK) with a left navigation pane
 (**Games / Install / Settings / About**), Mica window backdrop, rounded corners
 and light/dark theming that follows the system by default (overridable on the
 Settings page).
@@ -39,8 +41,11 @@ This tool does that for you and keeps track of what it changed.
 
 ## Requirements
 
-- Windows 10/11 x64, .NET 9 Desktop Runtime (install via
+- Windows 10 1809+ / 11 x64, .NET 9 Desktop Runtime (install via
   https://dotnet.microsoft.com/download/dotnet/9.0).
+- Windows App SDK 1.8 Runtime (x64). The app is unpackaged and
+  framework-dependent, so this runtime must be installed: see
+  https://learn.microsoft.com/windows/apps/windows-app-sdk/downloads.
 - The game must be **exited** before install/uninstall.
 - NVIDIA driver with `nvidia-smi` (ships with the driver) for GPU detection;
   fall back to a manual Router choice otherwise.
@@ -53,10 +58,11 @@ git clone --recursive https://github.com/you/dlssg-swapper.git
 cd dlssg-swapper
 
 dotnet build DlssgSwapper.sln -c Release
-# run: src/DlssgSwapper.App/bin/Release/net9.0-windows/DlssgSwapper.exe
+# run: src/DlssgSwapper.App/bin/x64/Release/net9.0-windows10.0.19041.0/DlssgSwapper.exe
 
-# or publish a self-contained folder
-dotnet publish src/DlssgSwapper.App -c Release -o out
+# or publish a runnable x64 folder (framework-dependent: requires the
+# Windows App SDK Runtime on the target machine)
+dotnet publish src/DlssgSwapper.App -c Release -r win-x64 -o out
 ```
 
 The default `catalog.json` verifies the bundled DLLs against the hashes of the
@@ -108,7 +114,8 @@ To add a future payload version, add the files, register a `versions` entry in
 
 ## License / third-party
 
-The UI uses [WPF-UI](https://github.com/lepoco/wpfui) (MIT).
+The UI uses [WinUI 3 / microsoft-ui-xaml](https://github.com/microsoft/microsoft-ui-xaml)
+and the [Windows App SDK](https://github.com/microsoft/WindowsAppSDK) (MIT).
 
 The bundled payload DLLs and INI templates come from
 [sdli1995/dlssg_for_sm86](https://github.com/sdli1995/dlssg_for_sm86)

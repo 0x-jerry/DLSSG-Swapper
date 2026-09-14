@@ -1,27 +1,22 @@
-using System.Windows;
 using DlssgSwapper.App.Configuration;
-using Wpf.Ui.Appearance;
-using Wpf.Ui.Controls;
+using Microsoft.UI.Xaml;
 
 namespace DlssgSwapper.App;
 
 public partial class App : Application
 {
+    public static Window? MainWindow { get; private set; }
+
     public App()
     {
         InitializeComponent();
+    }
 
-        AppTheme theme = AppSettings.Load().Theme;
-        if (theme == AppTheme.System)
-        {
-            ApplicationThemeManager.ApplySystemTheme(true);
-        }
-        else
-        {
-            ApplicationThemeManager.Apply(
-                theme == AppTheme.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light,
-                WindowBackdropType.Mica,
-                true);
-        }
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        var window = new MainWindow();
+        MainWindow = window;
+        window.Activate();
+        ThemeService.Apply(AppSettings.Load().Theme, window);
     }
 }

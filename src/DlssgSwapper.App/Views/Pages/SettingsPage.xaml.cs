@@ -1,8 +1,8 @@
-using System.Windows.Controls;
+using Microsoft.UI.Xaml.Controls;
 
 namespace DlssgSwapper.App.Views.Pages;
 
-public partial class SettingsPage : Page
+public sealed partial class SettingsPage : Page
 {
     public SettingsPage() => InitializeComponent();
 }

@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.Windows;
 using DlssgSwapper.App.Configuration;
 using DlssgSwapper.App.Mvvm;
 using DlssgSwapper.App.Views;
@@ -10,7 +9,11 @@ using DlssgSwapper.Core.Diagnostics;
 using DlssgSwapper.Core.Games;
 using DlssgSwapper.Core.Hardware;
 using DlssgSwapper.Core.Payloads;
-using Microsoft.Win32;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace DlssgSwapper.App.ViewModels;
 
@@ -39,14 +42,23 @@ public enum AppSection
 
 public sealed class GameProfileViewModel : ObservableObject
 {
-    public GameProfileViewModel(GameProfile profile, InstallInspection inspection)
+    public GameProfileViewModel(
+        GameProfile profile,
+        InstallInspection inspection,
+        Action<GameProfileViewModel> configure,
+        Func<GameProfileViewModel, Task> remove)
     {
         Profile = profile;
         Inspection = inspection;
+        ConfigureCommand = new RelayCommand(() => configure(this));
+        RemoveCommand = new AsyncRelayCommand(() => remove(this));
     }
 
     public GameProfile Profile { get; set; }
     public InstallInspection Inspection { get; set; }
+
+    public RelayCommand ConfigureCommand { get; }
+    public AsyncRelayCommand RemoveCommand { get; }
 
     public void Update(GameProfile profile, InstallInspection inspection)
     {
@@ -59,6 +71,7 @@ public sealed class GameProfileViewModel : ObservableObject
     public string ExecutablePath => Profile.ExecutablePath;
     public string ExecutableDirectory => Path.GetDirectoryName(Profile.ExecutablePath) ?? "";
     public string SourceName => Profile.Source == GameSource.Steam ? "Steam" : "Manual";
+    public InstallKind InstallKind => Inspection.Kind;
 
     public string InstallState => Inspection.Kind switch
     {
@@ -121,10 +134,8 @@ public sealed class MainViewModel : ObservableObject
         LoggingLevels = new ObservableCollection<int> { 0, 1, 2, 3 };
         Presets = new ObservableCollection<Preset> { Preset.Default, Preset.Performance };
 
-        AddGameCommand = new RelayCommand(AddGame);
-        ScanSteamCommand = new RelayCommand(ScanSteam);
-        RemoveGameCommand = new AsyncRelayCommand<GameProfileViewModel>(RemoveGame);
-        ConfigureGameCommand = new RelayCommand<GameProfileViewModel>(ConfigureGame);
+        AddGameCommand = new AsyncRelayCommand(AddGame);
+        ScanSteamCommand = new AsyncRelayCommand(ScanSteam);
         ShowGamesCommand = new RelayCommand(() => NavigationRequested?.Invoke(AppSection.Games));
         BackCommand = new RelayCommand(() => BackRequested?.Invoke());
         CopyStatusCommand = new RelayCommand(CopyStatus);
@@ -148,10 +159,8 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<Preset> Presets { get; }
     public ObservableCollection<EntryPointOption> EntryPointOptions { get; } = new();
 
-    public RelayCommand AddGameCommand { get; }
-    public RelayCommand ScanSteamCommand { get; }
-    public AsyncRelayCommand<GameProfileViewModel> RemoveGameCommand { get; }
-    public RelayCommand<GameProfileViewModel> ConfigureGameCommand { get; }
+    public AsyncRelayCommand AddGameCommand { get; }
+    public AsyncRelayCommand ScanSteamCommand { get; }
     public RelayCommand ShowGamesCommand { get; }
     public RelayCommand BackCommand { get; }
     public RelayCommand CopyStatusCommand { get; }
@@ -159,14 +168,19 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand OpenBackupFolderCommand { get; }
     public RelayCommand RefreshVerificationCommand { get; }
 
-    public static string BackupRoot { get; } = Path.Combine(
+    public string BackupRoot { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "DlssgSwapper", "backups");
 
     public string AppVersion { get; } =
         typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
+    public string AboutSubtitle =>
+        $"Version {AppVersion} · a manager for the dlssg_for_sm86 DLSS Frame Generation mod";
+
     public IReadOnlyList<AppTheme> ThemeOptions { get; } = Enum.GetValues<AppTheme>();
+
+    public bool HasProfiles => Profiles.Count > 0;
 
     public GameProfileViewModel? SelectedProfile
     {
@@ -288,7 +302,8 @@ public sealed class MainViewModel : ObservableObject
     {
         Profiles.Clear();
         foreach (var profile in _store.Profiles)
-            Profiles.Add(new GameProfileViewModel(profile, SafeInspect(profile)));
+            Profiles.Add(new GameProfileViewModel(profile, SafeInspect(profile), ConfigureGame, RemoveGame));
+        OnPropertyChanged(nameof(HasProfiles));
         SelectedProfile = Profiles.FirstOrDefault();
     }
 
@@ -382,9 +397,9 @@ public sealed class MainViewModel : ObservableObject
             HardwareBilinear = true;
     }
 
-    private void ConfigureGame(GameProfileViewModel? profile)
+    private void ConfigureGame(GameProfileViewModel profile)
     {
-        if (profile != null) SelectedProfile = profile;
+        SelectedProfile = profile;
         if (_selectedProfile == null) return;
         NavigationRequested?.Invoke(AppSection.Install);
     }
@@ -393,7 +408,9 @@ public sealed class MainViewModel : ObservableObject
     {
         try
         {
-            Clipboard.SetText(StatusText);
+            var package = new DataPackage();
+            package.SetText(StatusText);
+            Clipboard.SetContent(package);
         }
         catch (Exception)
         {
@@ -401,70 +418,97 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void AddGame()
+    private async Task AddGame()
     {
-        var dialog = new OpenFileDialog
-        {
-            Title = "Select the game's rendering executable (e.g. b1-Win64-Shipping.exe)",
-            Filter = "Game executable (*.exe)|*.exe|All files (*.*)|*.*",
-        };
-        if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.FileName)) return;
+        if (App.MainWindow == null) return;
 
-        var profile = GameProfile.Create(
-            $"{Path.GetFileNameWithoutExtension(dialog.FileName)} (manual)",
-            dialog.FileName,
-            GameSource.Manual);
-        _store.Add(profile);
-        SetStatus($"Added {profile.Name}.");
-        ReloadProfiles();
-        SelectedProfile = Profiles.Last();
-    }
-
-    private void ScanSteam()
-    {
-        var dialog = new SteamScanWindow { Owner = Application.Current.MainWindow };
-        if (dialog.ShowDialog() != true || dialog.SelectedExe == null) return;
-        string? gameName = dialog.SelectedGameName;
-        if (gameName == null) return;
-
-        var profile = GameProfile.Create(gameName, dialog.SelectedExe, GameSource.Steam);
-        _store.Add(profile);
-        SetStatus($"Added Steam game {profile.Name}.");
-        ReloadProfiles();
-        SelectedProfile = Profiles.Last();
-    }
-
-    private async Task RemoveGame(GameProfileViewModel? item)
-    {
-        if (item == null) return;
-
-        bool installed = item.Inspection.Kind != InstallKind.NotInstalled;
-        var choice = await Dialogs.ConfirmDestructiveAsync(
-            "Remove game",
-            $"“{item.Name}” will be removed from the library, and its saved backups will be deleted.",
-            "Remove",
-            optionText: installed ? "Uninstall the installed files first (restores the originals)" : null,
-            optionDefault: true);
-        if (!choice.Confirmed) return;
-
-        if (choice.OptionChecked && !Uninstall(item)) return;
-
-        _store.Remove(item.Profile.Id);
         try
         {
-            string backupRoot = BackupStore.RootFor(item.Profile.Id);
-            if (Directory.Exists(backupRoot)) Directory.Delete(backupRoot, recursive: true);
+            var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.ComputerFolder };
+            InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(App.MainWindow));
+            picker.FileTypeFilter.Add(".exe");
+            picker.FileTypeFilter.Add("*");
+
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+
+            var profile = GameProfile.Create(
+                $"{Path.GetFileNameWithoutExtension(file.Path)} (manual)",
+                file.Path,
+                GameSource.Manual);
+            _store.Add(profile);
+            SetStatus($"Added {profile.Name}.");
+            ReloadProfiles();
+            SelectedProfile = Profiles.Last();
         }
         catch (Exception e)
         {
-            SetStatus($"Removed profile but could not delete its backups: {e.Message}");
-            ReloadProfiles();
-            return;
+            SetStatus(e.Message);
+            Dialogs.Error("Add game failed", e.Message);
         }
-        SetStatus(choice.OptionChecked
-            ? $"Removed {item.Name} and uninstalled its files."
-            : $"Removed {item.Name}.");
-        ReloadProfiles();
+    }
+
+    private async Task ScanSteam()
+    {
+        var xamlRoot = (App.MainWindow?.Content as FrameworkElement)?.XamlRoot;
+        if (xamlRoot == null) return;
+
+        try
+        {
+            var dialog = new SteamScanDialog { XamlRoot = xamlRoot };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary || dialog.SelectedExe == null) return;
+            if (dialog.SelectedGameName == null) return;
+
+            var profile = GameProfile.Create(dialog.SelectedGameName, dialog.SelectedExe, GameSource.Steam);
+            _store.Add(profile);
+            SetStatus($"Added Steam game {profile.Name}.");
+            ReloadProfiles();
+            SelectedProfile = Profiles.Last();
+        }
+        catch (Exception e)
+        {
+            SetStatus(e.Message);
+            Dialogs.Error("Add game from Steam failed", e.Message);
+        }
+    }
+
+    private async Task RemoveGame(GameProfileViewModel item)
+    {
+        try
+        {
+            bool installed = item.Inspection.Kind != InstallKind.NotInstalled;
+            var choice = await Dialogs.ConfirmDestructiveAsync(
+                "Remove game",
+                $"“{item.Name}” will be removed from the library, and its saved backups will be deleted.",
+                "Remove",
+                optionText: installed ? "Uninstall the installed files first (restores the originals)" : null,
+                optionDefault: true);
+            if (!choice.Confirmed) return;
+
+            if (choice.OptionChecked && !Uninstall(item)) return;
+
+            _store.Remove(item.Profile.Id);
+            try
+            {
+                string backupRoot = BackupStore.RootFor(item.Profile.Id);
+                if (Directory.Exists(backupRoot)) Directory.Delete(backupRoot, recursive: true);
+            }
+            catch (Exception e)
+            {
+                SetStatus($"Removed profile but could not delete its backups: {e.Message}");
+                ReloadProfiles();
+                return;
+            }
+            SetStatus(choice.OptionChecked
+                ? $"Removed {item.Name} and uninstalled its files."
+                : $"Removed {item.Name}.");
+            ReloadProfiles();
+        }
+        catch (Exception e)
+        {
+            SetStatus(e.Message);
+            Dialogs.Error("Remove game failed", e.Message);
+        }
     }
 
     private void Install()
@@ -591,8 +635,6 @@ public sealed class MainViewModel : ObservableObject
     {
         AddGameCommand.RaiseCanExecuteChanged();
         ScanSteamCommand.RaiseCanExecuteChanged();
-        RemoveGameCommand.RaiseCanExecuteChanged();
-        ConfigureGameCommand.RaiseCanExecuteChanged();
         OpenGameFolderCommand.RaiseCanExecuteChanged();
     }
 

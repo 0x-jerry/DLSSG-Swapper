@@ -1,14 +1,12 @@
-using System.IO;
-using System.Windows;
-using System.Windows.Controls;
 using DlssgSwapper.Core.Steam;
-using Wpf.Ui.Controls;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace DlssgSwapper.App.Views;
 
-public partial class SteamScanWindow
+public sealed partial class SteamScanDialog : ContentDialog
 {
-    private sealed record ExeRow(CandidateExe Exe, string DisplayPath);
+    public sealed record ExeRow(CandidateExe Exe, string DisplayPath);
 
     private readonly List<SteamApp> _apps = new();
     private bool _scanning;
@@ -16,13 +14,12 @@ public partial class SteamScanWindow
     public string? SelectedGameName { get; private set; }
     public string? SelectedExe { get; private set; }
 
-    public SteamScanWindow()
+    public SteamScanDialog()
     {
         InitializeComponent();
-        Loaded += OnLoaded;
+        Resources["ContentDialogMaxWidth"] = 900d;
+        Opened += (_, _) => _ = ScanAsync();
     }
-
-    private async void OnLoaded(object sender, RoutedEventArgs e) => await ScanAsync();
 
     private async void OnRescan(object sender, RoutedEventArgs e) => await ScanAsync();
 
@@ -30,7 +27,7 @@ public partial class SteamScanWindow
     {
         if (_scanning) return;
         _scanning = true;
-        ScanRing.Visibility = Visibility.Visible;
+        ScanRing.IsActive = true;
         ShowStatus(InfoBarSeverity.Informational, "Scanning Steam libraries…", "Reading the folders Steam has registered.");
 
         try
@@ -65,7 +62,7 @@ public partial class SteamScanWindow
         finally
         {
             _scanning = false;
-            ScanRing.Visibility = Visibility.Collapsed;
+            ScanRing.IsActive = false;
         }
     }
 
@@ -83,13 +80,14 @@ public partial class SteamScanWindow
         var exes = app == null ? null : SteamLibraryScanner.FindCandidateExecutables(app.InstallDir);
 
         ExesList.ItemsSource = exes?.Select(exe => new ExeRow(exe, RelativePath(exe.Path, app!.InstallDir))).ToList();
-        OkButton.IsEnabled = false;
+        IsPrimaryButtonEnabled = false;
         ExesHint.Text = exes switch
         {
             null => "Select a game to list its executables.",
             { Count: 0 } => "No executable found in this folder. Try another game.",
             _ => "",
         };
+        ExesHint.Visibility = exes is { Count: > 0 } ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private static string RelativePath(string path, string root) =>
@@ -99,21 +97,17 @@ public partial class SteamScanWindow
 
     private void OnExeSelected(object sender, SelectionChangedEventArgs e)
     {
-        OkButton.IsEnabled = GamesList.SelectedItem is SteamApp && ExesList.SelectedItem != null;
+        IsPrimaryButtonEnabled = GamesList.SelectedItem is SteamApp && ExesList.SelectedItem is ExeRow;
     }
 
-    private void OnOk(object sender, RoutedEventArgs e)
+    private void OnAddGame(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
         if (GamesList.SelectedItem is SteamApp app && ExesList.SelectedItem is ExeRow row)
         {
             SelectedGameName = app.Name;
             SelectedExe = row.Exe.Path;
-            DialogResult = true;
+            return;
         }
-    }
-
-    private void OnCancel(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
+        args.Cancel = true;
     }
 }
