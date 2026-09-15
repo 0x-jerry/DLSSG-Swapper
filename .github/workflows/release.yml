@@ -23,9 +23,39 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Publish
-        run: dotnet publish src/DlssgSwapper.App/DlssgSwapper.App.csproj -c Release -r win-x64 --self-contained false -o out
+        run: dotnet publish src/DlssgSwapper.App/DlssgSwapper.App.csproj -c Release -r win-x64 --self-contained false -p:DebugType=None -p:DebugSymbols=false -o out
 
-      - name: Package
+      # The bundled proxy DLLs are ~99% identical to each other, so a solid
+      # archive (LZMA2, 64 MiB dictionary) shrinks the payload from ~100 MB to
+      # ~10 MB. Compress-Archive deflates each entry independently and cannot
+      # exploit that redundancy, which is why it produces a ~109 MB zip. We
+      # publish both: the small .7z as the recommended download and the .zip as
+      # an Explorer-extractable fallback.
+      - name: Package (7z)
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $archive = "DlssgSwapper-$tag-win-x64.7z"
+
+          $sevenZip = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
+          if (-not $sevenZip) { $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe' }
+          if (-not (Test-Path $sevenZip)) { throw '7-Zip not found on the runner.' }
+
+          Push-Location out
+          try {
+            $items = Get-ChildItem -Force | ForEach-Object { $_.Name }
+            & $sevenZip a -t7z -m0=lzma2 -mx=9 -ms=on -x'!*.pdb' "..\$archive" @items
+            if ($LASTEXITCODE -ne 0) { throw "7z failed with exit code $LASTEXITCODE" }
+          } finally {
+            Pop-Location
+          }
+
+          # Guard against a silent regression to non-solid compression.
+          $sizeMB = (Get-Item $archive).Length / 1MB
+          'Archive: {0} ({1:N1} MB)' -f $archive, $sizeMB
+          if ($sizeMB -gt 30) { throw ('Archive size {0:N1} MB exceeds the 30 MB budget.' -f $sizeMB) }
+
+      - name: Package (zip)
         shell: pwsh
         run: Compress-Archive -Path out/* -DestinationPath "DlssgSwapper-${{ github.ref_name }}-win-x64.zip"
 
@@ -33,4 +63,4 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${{ github.ref_name }}" "DlssgSwapper-${{ github.ref_name }}-win-x64.zip" --title "${{ github.ref_name }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" "DlssgSwapper-${{ github.ref_name }}-win-x64.7z" "DlssgSwapper-${{ github.ref_name }}-win-x64.zip" --title "${{ github.ref_name }}" --generate-notes

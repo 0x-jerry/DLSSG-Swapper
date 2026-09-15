@@ -5,3 +5,4 @@ obj/
 *.suo
 TestResults/
 out/
+*.7z

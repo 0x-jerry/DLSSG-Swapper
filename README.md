@@ -29,6 +29,9 @@ uninstalls cleanly. Built with WinUI 3 / Windows App SDK.
   [Windows App SDK 1.8 Runtime](https://learn.microsoft.com/windows/apps/windows-app-sdk/downloads).
 - An RTX 30 (SM86) or RTX 20 (SM75) GPU, an NVIDIA driver with `nvidia-smi`
   (R580+ recommended), and the game **exited** during install/uninstall.
+- Releases ship as a small `.7z` (recommended) and a plain `.zip` fallback with
+  identical contents. Windows 11 (24H2+) opens `.7z` in File Explorer; on
+  Windows 10 either install [7-Zip](https://7-zip.org/) or use the `.zip`.
 
 ## Build
 
