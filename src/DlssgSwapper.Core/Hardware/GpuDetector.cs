@@ -7,14 +7,20 @@ public enum SmTarget
 {
     Unknown,
     Sm86,
+    Sm75,
     Unsupported,
 }
 
 public sealed record GpuInfo(string? Name, string? ComputeCapability, string? DriverVersion, SmTarget Sm)
 {
-    public bool IsSupported => Sm != SmTarget.Unsupported;
+    public bool IsSupported => Sm is SmTarget.Sm86 or SmTarget.Sm75;
 
-    public string? SuggestedRouter => Sm == SmTarget.Sm86 ? "SM86" : null;
+    public string? SuggestedRouter => Sm switch
+    {
+        SmTarget.Sm86 => "SM86",
+        SmTarget.Sm75 => "SM75",
+        _ => null,
+    };
 
     public string Describe() => Name ?? (ComputeCapability != null ? $"compute capability {ComputeCapability}" : "unknown GPU");
 }
@@ -55,15 +61,21 @@ public static partial class GpuDetector
         return new GpuInfo(name, computeCap, driver, Classify(computeCap, name));
     }
 
-    // Only Ampere consumer parts (SM86 / RTX 30 series) are supported; anything else that can be
-    // identified is reported as unsupported rather than silently routed.
+    // Ampere consumer parts (SM86 / RTX 30) and Turing RTX parts (SM75 / RTX 20) are supported.
+    // A bare compute capability of 7.5 is not enough on its own: GTX 16-series is also SM75 but
+    // has no tensor cores and cannot run DLSS-G, so a Turing RTX/TITAN/Quadro name is required.
     public static SmTarget Classify(string? computeCapability, string? name)
     {
-        if (!string.IsNullOrWhiteSpace(computeCapability) && computeCapability.Trim() == "8.6")
+        string? cap = computeCapability?.Trim();
+        bool hasName = !string.IsNullOrWhiteSpace(name);
+
+        if (cap == "8.6" || (hasName && AmpereNameRegex().IsMatch(name!)))
             return SmTarget.Sm86;
-        if (!string.IsNullOrWhiteSpace(name) && NameRegex().IsMatch(name))
-            return SmTarget.Sm86;
-        return string.IsNullOrWhiteSpace(computeCapability) && string.IsNullOrWhiteSpace(name)
+        if (hasName && TuringNameRegex().IsMatch(name!))
+            return SmTarget.Sm75;
+        if (cap == "7.5" && hasName && !Gtx16NameRegex().IsMatch(name!))
+            return SmTarget.Sm75;
+        return string.IsNullOrWhiteSpace(computeCapability) && !hasName
             ? SmTarget.Unknown
             : SmTarget.Unsupported;
     }
@@ -133,5 +145,14 @@ public static partial class GpuDetector
         string.IsNullOrEmpty(field) ? null : field.Trim(' ', '"');
 
     [GeneratedRegex(@"RTX\s+30", RegexOptions.IgnoreCase)]
-    private static partial Regex NameRegex();
+    private static partial Regex AmpereNameRegex();
+
+    // RTX 20-series, TITAN RTX and Quadro RTX are Turing (SM75); the A-series Quadro is Ampere
+    // and is caught by the compute-capability check first.
+    [GeneratedRegex(@"RTX\s+20|TITAN\s+RTX|Quadro\s+RTX\s+(?!A\d)", RegexOptions.IgnoreCase)]
+    private static partial Regex TuringNameRegex();
+
+    // GTX 16-series shares compute capability 7.5 but has no tensor cores.
+    [GeneratedRegex(@"GTX\s+16", RegexOptions.IgnoreCase)]
+    private static partial Regex Gtx16NameRegex();
 }

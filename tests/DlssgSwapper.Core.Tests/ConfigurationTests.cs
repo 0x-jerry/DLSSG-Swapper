@@ -152,7 +152,16 @@ public class IniApplierTests
         Assert.Equal("Auto", settings.Router);
         Assert.Equal("Auto", settings.KernelImage);
         Assert.Equal("Auto", settings.Preset);
-        Assert.Equal(5, settings.MaxGeneratedFrames);
+        Assert.Equal(3, settings.MaxGeneratedFrames);
         Assert.Equal(1, settings.LoggingLevel);
+    }
+
+    [Fact]
+    public void Apply_AcceptsSm75Router()
+    {
+        var ini = IniFile.Load(Template());
+        IniApplier.Apply(ini, FrameGenSettings.Defaults() with { Router = "SM75" });
+
+        Assert.Contains("Router=SM75", ini.Render());
     }
 }

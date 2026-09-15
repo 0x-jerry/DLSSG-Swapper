@@ -30,8 +30,8 @@ public class InstallationServiceTests : IDisposable
         if (Directory.Exists(_backupRoot)) Directory.Delete(_backupRoot, recursive: true);
     }
 
-    private PayloadVersion Current => _catalog.GetVersion("0.3.0")!;
-    private PayloadVersion Legacy => _catalog.GetVersion("0.3.0-310.1")!;
+    private PayloadVersion Current => _catalog.GetVersion("0.3.1")!;
+    private PayloadVersion Legacy => _catalog.GetVersion("0.3.1-310.1")!;
     private string InstalledIni => Path.Combine(_gameDir, InstallationService.IniFileName);
 
     private static FrameGenSettings Defaults => FrameGenSettings.Defaults();
@@ -47,7 +47,7 @@ public class InstallationServiceTests : IDisposable
         var ini = IniFile.Load(InstalledIni);
         Assert.Equal("1", ini.Get("General", "Enabled"));
         Assert.Equal("1", ini.Get("FrameGeneration", "Optimized"));
-        Assert.Equal("5", ini.Get("FrameGeneration", "MaxGeneratedFrames"));
+        Assert.Equal("3", ini.Get("FrameGeneration", "MaxGeneratedFrames"));
         Assert.Equal("Auto", ini.Get("Compatibility", "Router"));
         Assert.Equal("Auto", ini.Get("Compatibility", "KernelImage"));
         Assert.Equal("Auto", ini.Get("Compatibility", "Preset"));
@@ -166,6 +166,79 @@ public class InstallationServiceTests : IDisposable
         Assert.Contains(warnings, w => w.Contains("modified"));
         Assert.True(File.Exists(InstalledIni));
         Assert.False(File.Exists(Path.Combine(_gameDir, "version.dll")));
+    }
+
+    [Fact]
+    public void LegacyProxy_IsRecognisedAndUpgradedInPlace()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"legacy-catalog-{Guid.NewGuid():N}");
+        string gameDir = Path.Combine(Path.GetTempPath(), $"legacy-game-{Guid.NewGuid():N}");
+        string backupRoot = Path.Combine(Path.GetTempPath(), $"legacy-backup-{Guid.NewGuid():N}");
+        try
+        {
+            byte[] currentBytes = { 0x4D, 0x5A, 0x03, 0x01 };
+            byte[] legacyBytes = { 0x4D, 0x5A, 0x02, 0x00 };
+            string binDir = Path.Combine(root, "bin", "0.3.1");
+            string templateDir = Path.Combine(root, "templates");
+            Directory.CreateDirectory(binDir);
+            Directory.CreateDirectory(templateDir);
+            Directory.CreateDirectory(gameDir);
+
+            string binPath = Path.Combine(binDir, "version.dll");
+            File.WriteAllBytes(binPath, currentBytes);
+            string currentHash = Hashing.Sha256File(binPath);
+            string legacyProbe = Path.Combine(root, "legacy.bin");
+            File.WriteAllBytes(legacyProbe, legacyBytes);
+            string legacyHash = Hashing.Sha256File(legacyProbe);
+            File.Delete(legacyProbe);
+
+            File.WriteAllText(Path.Combine(templateDir, "sm86-default.ini"),
+                "[General]\nEnabled=1\n[FrameGeneration]\nOptimized=1\nMaxGeneratedFrames=3\n" +
+                "[Compatibility]\nRouter=Auto\nKernelImage=Auto\nPreset=Auto\n[Logging]\nLevel=1\n");
+            File.WriteAllText(Path.Combine(root, "catalog.json"), $$"""
+            {
+              "versions": [{
+                "version": "0.3.1",
+                "displayName": "0.3.1",
+                "sourceRoot": "external/dlssg_for_sm86",
+                "maxGeneratedFrames": 5,
+                "templates": { "default": "templates/sm86-default.ini" },
+                "legacySha256": ["{{legacyHash}}"],
+                "entryPoints": [
+                  { "file": "version.dll", "source": "version.dll", "sha256": "{{currentHash}}", "recommended": true }
+                ]
+              }]
+            }
+            """);
+
+            var catalog = PayloadCatalog.Load(root);
+            var service = new InstallationService(catalog, _ => new BackupStore(backupRoot));
+            var version = catalog.GetVersion("0.3.1")!;
+            var entry = version.FindEntryPoint("version.dll")!;
+            string exe = Path.Combine(gameDir, "FakeGame.exe");
+            File.WriteAllBytes(exe, new byte[] { 0x4D, 0x5A });
+            var profile = GameProfile.Create("Legacy Game", exe, GameSource.Manual);
+
+            File.WriteAllBytes(Path.Combine(gameDir, "version.dll"), legacyBytes);
+            var inspection = service.Inspect(profile);
+            Assert.Equal(FileOrigin.Ours, inspection.ProxyOrigin);
+            Assert.True(inspection.OutdatedProxy);
+            Assert.Null(inspection.InstalledVersion);
+            Assert.Equal("version.dll", inspection.InstalledEntryPoint!.FileName);
+
+            service.Install(profile, version, entry, Defaults);
+            Assert.Equal(entry.Sha256, Hashing.Sha256File(Path.Combine(gameDir, "version.dll")), ignoreCase: true);
+
+            service.Uninstall(profile);
+            Assert.False(File.Exists(Path.Combine(gameDir, "version.dll")));
+            Assert.False(File.Exists(Path.Combine(gameDir, InstallationService.IniFileName)));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(gameDir)) Directory.Delete(gameDir, recursive: true);
+            if (Directory.Exists(backupRoot)) Directory.Delete(backupRoot, recursive: true);
+        }
     }
 
     [Fact]

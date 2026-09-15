@@ -17,7 +17,7 @@ This tool does that for you and keeps track of what it changed.
 
 ## What it does
 
-- **Payload catalog** — knows the bundled 0.3.0 proxy payloads (310.9, up to 6X,
+- **Payload catalog** — knows the bundled 0.3.1 proxy payloads (310.9, up to 6X,
   and 310.1, up to 4X) and verifies each DLL against its SHA256 before use.
 - **Install / swap** — copies the chosen proxy + INI next to the game EXE.
   Swapping entry points (`version.dll`, `winmm.dll`, `dbghelp.dll`,
@@ -28,7 +28,8 @@ This tool does that for you and keeps track of what it changed.
 - **Schema-faithful INI** — writes `Enabled`, `Optimized`,
   `MaxGeneratedFrames`, `Router`, `KernelImage`, `Preset` and `Logging.Level`
   into the bundled template, preserving comments and untouched keys. Values are
-  clamped to the selected payload: the 310.1 build caps at 4X.
+  clamped to the selected payload: the 310.1 build caps at 4X. The factory
+  default is 4X (`MaxGeneratedFrames=3`); 6X needs `5` on the 310.9 payload.
 - **Safe backup/restore** — pre-existing files are backed up once per game;
   uninstall restores byte-identical originals. Foreign files (e.g. ReShade's
   `dxgi.dll`) are never overwritten without confirmation and are backed up
@@ -50,8 +51,10 @@ This tool does that for you and keeps track of what it changed.
   framework-dependent, so this runtime must be installed: see
   https://learn.microsoft.com/windows/apps/windows-app-sdk/downloads.
 - The game must be **exited** before install/uninstall.
-- An **RTX 30 series (SM86)** GPU. Anything else is detected as unsupported and
-  the tool refuses to install.
+- An **RTX 30 series (SM86)** or **RTX 20 series (Turing / SM75)** GPU. Anything
+  else is detected as unsupported and the tool refuses to install. The 0.3.1
+  payloads restore RTX 20 support; an R580+ driver is recommended (roughly R555
+  minimum, where PTX is used automatically).
 - NVIDIA driver with `nvidia-smi` (ships with the driver) for GPU detection;
   fall back to a manual Router choice otherwise.
 
@@ -75,6 +78,21 @@ The default `catalog.json` verifies the bundled DLLs against the hashes of the
 files are missing or corrupted, the tool refuses to start and names the file.
 Update the submodule and `catalog.json` together when adopting a new version.
 
+### Upgrading from 0.3.0
+
+A proxy installed by an earlier release no longer matches the current payload
+hashes. Those older hashes are kept in `catalog.json` under `legacySha256`, so
+the tool still recognises the file as its own: the game shows as installed with
+an "outdated proxy" note, the next **Install / Swap** replaces it in place, and
+**Uninstall** removes it normally.
+
+### Advanced keys
+
+The 0.3.1 payloads add `[Compatibility] SM75Family` and `SpoofArchToGame` for
+RTX 20 tuning. Their defaults are already correct, so this tool does not write
+them; if you add them by hand they are preserved. `SM75Family=Original` selects
+the unmodified upstream Turing kernels instead of the repaired set.
+
 ## Usage
 
 1. Run the tool. It detects your GPU and shows the suggested Router.
@@ -86,7 +104,8 @@ Update the submodule and `catalog.json` together when adopting a new version.
    file), the tool asks for confirmation; tick **Allow overwriting foreign
    files** and retry.
 5. Launch the game, enable DLSS frame generation, and select 2X/3X/4X
-   (up to 6X on the 310.9 payload with a game that supports it).
+   (up to 6X on the 310.9 payload with a game that supports it). The factory
+   default is 4X; pick `5` in the Max frames dropdown for 6X on 310.9.
    Use **Verify** after playing to confirm the route from the mod's logs.
 6. **Uninstall** restores the original files; **Remove** forgets a game and
    deletes its saved backups.
@@ -102,8 +121,10 @@ payloads/
 
 The binaries are not stored in this repository: the App project copies them
 from `external/dlssg_for_sm86` (the git submodule) into the build output —
-`version.dll` plus `alternatives/*.dll` for 0.3.0 (310.9) and from the
-`310.1/` folder for 0.3.0-310.1.
+`version.dll` plus `alternatives/*.dll` for 0.3.1 (310.9) and from the
+`310.1/` folder for 0.3.1-310.1. The 0.3.1 DLLs are larger than 0.3.0 because
+the SM75 (Turing) kernels are now embedded, so allow roughly 350 MB of payloads
+in the build output.
 To add a future payload version, add the files, register a `versions` entry in
 `catalog.json` (with the real SHA256 and `maxGeneratedFrames`), and add the copy
 item to `src/DlssgSwapper.Core/DlssgSwapper.Core.csproj`.

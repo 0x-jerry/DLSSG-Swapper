@@ -17,14 +17,14 @@ public sealed record FrameGenSettings
         Router = "Auto",
         KernelImage = "Auto",
         Preset = "Auto",
-        MaxGeneratedFrames = 5,
+        MaxGeneratedFrames = 3,
         LoggingLevel = 1,
     };
 }
 
 public static class IniApplier
 {
-    private static readonly string[] RouterValues = { "Auto", "SM86" };
+    private static readonly string[] RouterValues = { "Auto", "SM86", "SM75" };
     private static readonly string[] KernelImageValues = { "Auto", "Cubin", "PTX", "Original" };
     private static readonly string[] PresetValues = { "Auto", "A", "B" };
 
@@ -32,7 +32,7 @@ public static class IniApplier
     {
         Set(ini, "General", "Enabled", settings.Enabled, ZeroOne, 1);
         Set(ini, "FrameGeneration", "Optimized", settings.Optimized, ZeroOne, 1);
-        Set(ini, "FrameGeneration", "MaxGeneratedFrames", settings.MaxGeneratedFrames, MaxFrames, 5);
+        Set(ini, "FrameGeneration", "MaxGeneratedFrames", settings.MaxGeneratedFrames, MaxFrames, 3);
         Set(ini, "Compatibility", "Router", settings.Router, RouterValues, "Auto");
         Set(ini, "Compatibility", "KernelImage", settings.KernelImage, KernelImageValues, "Auto");
         Set(ini, "Compatibility", "Preset", settings.Preset, PresetValues, "Auto");

@@ -11,19 +11,19 @@
     <Content Include="..\..\payloads\catalog.json" Link="payloads\catalog.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\payloads\templates\*.ini" Link="payloads\templates\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <Content Include="$(SubmoduleRoot)version.dll" Link="payloads\bin\0.3.0\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)version.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\winmm.dll" Link="payloads\bin\0.3.0\winmm.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\winmm.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\dbghelp.dll" Link="payloads\bin\0.3.0\dbghelp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dbghelp.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\dinput8.dll" Link="payloads\bin\0.3.0\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dinput8.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\dxgi.dll" Link="payloads\bin\0.3.0\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dxgi.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\d3d12.dll" Link="payloads\bin\0.3.0\d3d12.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\d3d12.dll')" />
+    <Content Include="$(SubmoduleRoot)version.dll" Link="payloads\bin\0.3.1\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)version.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\winmm.dll" Link="payloads\bin\0.3.1\winmm.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\winmm.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\dbghelp.dll" Link="payloads\bin\0.3.1\dbghelp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dbghelp.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\dinput8.dll" Link="payloads\bin\0.3.1\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dinput8.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\dxgi.dll" Link="payloads\bin\0.3.1\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dxgi.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\d3d12.dll" Link="payloads\bin\0.3.1\d3d12.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\d3d12.dll')" />
 
-    <Content Include="$(SubmoduleRoot)310.1\version.dll" Link="payloads\bin\0.3.0-310.1\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\version.dll')" />
-    <Content Include="$(SubmoduleRoot)310.1\alternatives\winmm.dll" Link="payloads\bin\0.3.0-310.1\winmm.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\winmm.dll')" />
-    <Content Include="$(SubmoduleRoot)310.1\alternatives\dbghelp.dll" Link="payloads\bin\0.3.0-310.1\dbghelp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\dbghelp.dll')" />
-    <Content Include="$(SubmoduleRoot)310.1\alternatives\dinput8.dll" Link="payloads\bin\0.3.0-310.1\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\dinput8.dll')" />
-    <Content Include="$(SubmoduleRoot)310.1\alternatives\dxgi.dll" Link="payloads\bin\0.3.0-310.1\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\dxgi.dll')" />
-    <Content Include="$(SubmoduleRoot)310.1\alternatives\d3d12.dll" Link="payloads\bin\0.3.0-310.1\d3d12.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\d3d12.dll')" />
+    <Content Include="$(SubmoduleRoot)310.1\version.dll" Link="payloads\bin\0.3.1-310.1\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\version.dll')" />
+    <Content Include="$(SubmoduleRoot)310.1\alternatives\winmm.dll" Link="payloads\bin\0.3.1-310.1\winmm.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\winmm.dll')" />
+    <Content Include="$(SubmoduleRoot)310.1\alternatives\dbghelp.dll" Link="payloads\bin\0.3.1-310.1\dbghelp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\dbghelp.dll')" />
+    <Content Include="$(SubmoduleRoot)310.1\alternatives\dinput8.dll" Link="payloads\bin\0.3.1-310.1\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\dinput8.dll')" />
+    <Content Include="$(SubmoduleRoot)310.1\alternatives\dxgi.dll" Link="payloads\bin\0.3.1-310.1\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\dxgi.dll')" />
+    <Content Include="$(SubmoduleRoot)310.1\alternatives\d3d12.dll" Link="payloads\bin\0.3.1-310.1\d3d12.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)310.1\alternatives\d3d12.dll')" />
   </ItemGroup>
 
 </Project>

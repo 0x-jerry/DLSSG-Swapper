@@ -19,6 +19,15 @@ public sealed class PayloadCatalog
 
     private readonly string _root;
     private readonly Dictionary<string, PayloadEntryPoint> _bySha256;
+    private readonly Dictionary<string, PayloadVersion> _legacyBySha256;
+
+    // Catalog version IDs were renamed from 0.3.0 / 0.3.0-310.1 when the payload moved to 0.3.1.
+    // Saved profiles still carry the old IDs; map them so the right version is selected.
+    private static readonly Dictionary<string, string> VersionAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["0.3.0"] = "0.3.1",
+        ["0.3.0-310.1"] = "0.3.1-310.1",
+    };
 
     private PayloadCatalog(string root, IReadOnlyList<PayloadVersion> versions)
     {
@@ -27,15 +36,30 @@ public sealed class PayloadCatalog
         _bySha256 = versions
             .SelectMany(v => v.EntryPoints)
             .ToDictionary(e => e.Sha256, StringComparer.OrdinalIgnoreCase);
+        _legacyBySha256 = new Dictionary<string, PayloadVersion>(StringComparer.OrdinalIgnoreCase);
+        foreach (var version in versions)
+            foreach (string hash in version.LegacySha256)
+                _legacyBySha256[hash] = version;
     }
 
     public IReadOnlyList<PayloadVersion> Versions { get; }
 
-    public PayloadVersion? GetVersion(string version) =>
-        Versions.FirstOrDefault(v => string.Equals(v.Version, version, StringComparison.OrdinalIgnoreCase));
+    public PayloadVersion? GetVersion(string version)
+    {
+        var exact = Versions.FirstOrDefault(v => string.Equals(v.Version, version, StringComparison.OrdinalIgnoreCase));
+        if (exact != null) return exact;
+        return VersionAliases.TryGetValue(version, out string? alias)
+            ? Versions.FirstOrDefault(v => string.Equals(v.Version, alias, StringComparison.OrdinalIgnoreCase))
+            : null;
+    }
 
     public PayloadEntryPoint? FindBySha256(string sha256) =>
         _bySha256.TryGetValue(sha256, out var entry) ? entry : null;
+
+    // A hash from an earlier release of one of the bundled payload lines. The file is ours but
+    // cannot be installed from this catalog; it only needs to be recognised and replaced.
+    public PayloadVersion? FindLegacyVersionOf(string sha256) =>
+        _legacyBySha256.TryGetValue(sha256, out var version) ? version : null;
 
     public PayloadVersion? FindVersionOf(string sha256)
     {
@@ -84,6 +108,7 @@ public sealed class PayloadCatalog
             .ToList())
     {
         MaxGeneratedFrames = dto.MaxGeneratedFrames,
+        LegacySha256 = dto.LegacySha256,
     };
 
     private void VerifyPayload(PayloadVersion version, PayloadEntryPoint entryPoint)
@@ -110,6 +135,7 @@ public sealed class PayloadCatalog
         public string DisplayName { get; set; } = "";
         public string SourceRoot { get; set; } = "";
         public int MaxGeneratedFrames { get; set; } = 5;
+        public List<string> LegacySha256 { get; set; } = new();
         public Dictionary<string, string> Templates { get; set; } = new();
         public List<EntryPointDto> EntryPoints { get; set; } = new();
     }

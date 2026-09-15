@@ -26,6 +26,9 @@ public sealed record InstallInspection
     public FileOrigin ProxyOrigin { get; init; }
     public string? PresentProxyFile { get; init; }
     public bool IniPresent { get; init; }
+    // True when the installed proxy matches an earlier release of a bundled payload line
+    // (recognised so it is not treated as foreign, but it should be reinstalled).
+    public bool OutdatedProxy { get; init; }
     public IReadOnlyList<string> Warnings { get; init; } = Array.Empty<string>();
 }
 
@@ -67,26 +70,42 @@ public sealed class InstallationService
         string gameDir = DirOrEmpty(profile);
 
         PayloadEntryPoint? foundOurs = null;
+        PayloadEntryPoint? foundLegacy = null;
         string? presentProxy = null;
         bool foreignPresent = false;
         foreach (string name in KnownProxyNames)
         {
             string path = Path.Combine(gameDir, name);
             if (!File.Exists(path)) continue;
-            var entry = IsOursAndWhich(path);
             presentProxy ??= name;
+
+            string? hash = TryHash(path);
+            if (hash == null)
+            {
+                foreignPresent = true;
+                warnings.Add($"{name} exists but could not be read; it will never be touched.");
+                continue;
+            }
+
+            var entry = _catalog.FindBySha256(hash);
             if (entry != null)
             {
                 if (foundOurs == null)
                     foundOurs = entry;
                 else
                     warnings.Add($"Found a second proxy from this package ({name}); keeping only one is recommended.");
+                continue;
             }
-            else
+
+            if (_catalog.FindLegacyVersionOf(hash) != null)
             {
-                foreignPresent = true;
-                warnings.Add($"{name} exists but does not match any payload in this tool; it will never be touched.");
+                foundLegacy ??= new PayloadEntryPoint(name, name, hash, false, "Previous release");
+                warnings.Add($"{name} is from an earlier payload release; reinstall to update it.");
+                continue;
             }
+
+            foreignPresent = true;
+            warnings.Add($"{name} exists but does not match any payload in this tool; it will never be touched.");
         }
 
         string iniPath = Path.Combine(gameDir, IniFileName);
@@ -103,8 +122,9 @@ public sealed class InstallationService
             }
         }
 
-        var origin = foundOurs != null ? FileOrigin.Ours : foreignPresent ? FileOrigin.Foreign : FileOrigin.Absent;
-        var kind = (foundOurs != null, iniPresent) switch
+        bool ours = foundOurs != null || foundLegacy != null;
+        var origin = ours ? FileOrigin.Ours : foreignPresent ? FileOrigin.Foreign : FileOrigin.Absent;
+        var kind = (ours, iniPresent) switch
         {
             (true, true) => InstallKind.Installed,
             (false, false) => InstallKind.NotInstalled,
@@ -114,13 +134,12 @@ public sealed class InstallationService
         return new InstallInspection
         {
             Kind = kind,
-            InstalledVersion = foundOurs != null
-                ? _catalog.FindVersionOf(Hashing.Sha256File(Path.Combine(gameDir, foundOurs.FileName)))
-                : null,
-            InstalledEntryPoint = foundOurs,
+            InstalledVersion = foundOurs != null ? _catalog.FindVersionOf(foundOurs.Sha256) : null,
+            InstalledEntryPoint = foundOurs ?? foundLegacy,
             ProxyOrigin = origin,
             PresentProxyFile = presentProxy,
             IniPresent = iniPresent,
+            OutdatedProxy = foundOurs == null && foundLegacy != null,
             Warnings = warnings,
         };
     }
@@ -137,13 +156,15 @@ public sealed class InstallationService
         var warnings = new List<string>();
 
         AssertFileWritable(target);
-        if (File.Exists(target) && IsOursAndWhich(target) == null && !overwriteForeignFile)
+        if (File.Exists(target) && !IsOursOrLegacy(target) && !overwriteForeignFile)
             throw new ForeignFileException(entryPoint.FileName);
-        if (File.Exists(target) && IsOursAndWhich(target) == null)
+        if (File.Exists(target) && !IsOursOrLegacy(target))
             warnings.Add($"Overwriting foreign {entryPoint.FileName} after confirmation; the original is backed up.");
 
         var store = _backupFactory(profile.Id);
-        store.BackupOriginal(gameDir, entryPoint.FileName);
+        // Never treat a proxy we installed (current or previous release) as the game's original.
+        if (!File.Exists(target) || !IsOursOrLegacy(target))
+            store.BackupOriginal(gameDir, entryPoint.FileName);
         store.BackupOriginal(gameDir, IniFileName);
 
         RemoveOtherOwnedProxies(gameDir, entryPoint.FileName, warnings);
@@ -183,7 +204,7 @@ public sealed class InstallationService
         foreach (string name in KnownProxyNames)
         {
             string path = Path.Combine(gameDir, name);
-            bool oursPresent = File.Exists(path) && IsOursAndWhich(path) != null;
+            bool oursPresent = IsOursOrLegacy(path);
             if (File.Exists(path) && !oursPresent)
             {
                 warnings.Add($"Left {name}: it does not belong to this tool.");
@@ -214,7 +235,7 @@ public sealed class InstallationService
         return warnings;
     }
 
-    public bool IsOurs(string path) => IsOursAndWhich(path) != null;
+    public bool IsOurs(string path) => IsOursOrLegacy(path);
 
     private static FrameGenSettings ClampToRuntime(FrameGenSettings settings, PayloadVersion version)
     {
@@ -223,12 +244,19 @@ public sealed class InstallationService
         return settings with { MaxGeneratedFrames = version.MaxGeneratedFrames };
     }
 
-    private PayloadEntryPoint? IsOursAndWhich(string path)
+    // Ours, including a proxy left by an earlier payload release (matched by legacy hash).
+    private bool IsOursOrLegacy(string path)
     {
-        if (!File.Exists(path)) return null;
+        if (!File.Exists(path)) return false;
+        string? hash = TryHash(path);
+        return hash != null && (_catalog.FindBySha256(hash) != null || _catalog.FindLegacyVersionOf(hash) != null);
+    }
+
+    private static string? TryHash(string path)
+    {
         try
         {
-            return _catalog.FindBySha256(Hashing.Sha256File(path));
+            return Hashing.Sha256File(path);
         }
         catch (IOException)
         {
@@ -243,7 +271,7 @@ public sealed class InstallationService
             if (string.Equals(name, keep, StringComparison.OrdinalIgnoreCase)) continue;
             string path = Path.Combine(gameDir, name);
             if (!File.Exists(path)) continue;
-            if (IsOursAndWhich(path) != null)
+            if (IsOursOrLegacy(path))
             {
                 File.Delete(path);
                 warnings.Add($"Removed previously installed proxy {name} (only one package proxy is kept).");

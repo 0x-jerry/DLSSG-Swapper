@@ -76,6 +76,8 @@ public sealed class GameProfileViewModel : ObservableObject
 
     public string InstallSummary => Inspection.Kind switch
     {
+        InstallKind.Installed when Inspection.OutdatedProxy =>
+            $"Outdated proxy {Inspection.InstalledEntryPoint?.FileName ?? ""} from a previous release - reinstall to update",
         InstallKind.Installed =>
             $"Installed {Inspection.InstalledVersion?.Version ?? "?"} via {Inspection.InstalledEntryPoint?.FileName ?? "?"}",
         InstallKind.Partial => "Partial install (proxy or INI missing)",
@@ -107,7 +109,7 @@ public sealed class MainViewModel : ObservableObject
     private string _selectedRouter = "Auto";
     private string _selectedKernelImage = "Auto";
     private string _selectedPreset = "Auto";
-    private int _selectedMaxFrames = 5;
+    private int _selectedMaxFrames = 3;
     private int _selectedLoggingLevel = 1;
     private bool _overwriteForeign;
     private string _gpuSummary = "Detecting GPU…";
@@ -125,7 +127,7 @@ public sealed class MainViewModel : ObservableObject
         _overwriteForeign = _settings.DefaultOverwriteForeign;
 
         Versions = new ObservableCollection<PayloadVersion>(_catalog.Versions);
-        Routers = new ObservableCollection<string> { "Auto", "SM86" };
+        Routers = new ObservableCollection<string> { "Auto", "SM86", "SM75" };
         KernelImages = new ObservableCollection<string> { "Auto", "Cubin", "PTX", "Original" };
         MaxFrames = new ObservableCollection<int>();
         LoggingLevels = new ObservableCollection<int> { 0, 1, 2, 3 };
@@ -656,6 +658,6 @@ public sealed class MainViewModel : ObservableObject
         GpuSupported = info.IsSupported;
         GpuWarning = info.IsSupported
             ? ""
-            : $"Only RTX 30 series (SM86) is supported. This machine reports {info.Describe()}.";
+            : $"Only RTX 30 (SM86) and RTX 20 (SM75) series are supported. This machine reports {info.Describe()}.";
     }
 }
