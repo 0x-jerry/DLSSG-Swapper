@@ -31,7 +31,7 @@ public static class IniApplier
     public static void Apply(IniFile ini, FrameGenSettings settings)
     {
         Set(ini, "General", "Enabled", settings.Enabled, ZeroOne, 1);
-        Set(ini, "FrameGeneration", "Optimized", settings.Optimized, ZeroOne, 1);
+        Set(ini, "FrameGeneration", "Optimized", settings.Optimized, Tier, 1);
         Set(ini, "FrameGeneration", "MaxGeneratedFrames", settings.MaxGeneratedFrames, MaxFrames, 3);
         Set(ini, "Compatibility", "Router", settings.Router, RouterValues, "Auto");
         Set(ini, "Compatibility", "KernelImage", settings.KernelImage, KernelImageValues, "Auto");
@@ -58,6 +58,7 @@ public static class IniApplier
     }
 
     private static bool ZeroOne(int v) => v is 0 or 1;
+    private static bool Tier(int v) => v is >= 0 and <= 3;
     private static bool MaxFrames(int v) => v is >= 0 and <= 5;
     private static bool LogLevel(int v) => v is >= 0 and <= 3;
 }

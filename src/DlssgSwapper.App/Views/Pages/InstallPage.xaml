@@ -135,9 +135,15 @@
                                     <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                                               Content="Frame generation enabled ([General] Enabled)"
                                               IsChecked="{Binding Enabled, Mode=TwoWay}" />
-                                    <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                              Content="Optimized kernels ([FrameGeneration] Optimized)"
-                                              IsChecked="{Binding Optimized, Mode=TwoWay}" Margin="0,10,0,0" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Optimized"
+                                               Style="{StaticResource FieldLabelText}" Margin="0,16,12,10" />
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,16,0,10">
+                                        <ComboBox ItemsSource="{Binding OptimizedTiers}"
+                                                  SelectedItem="{Binding SelectedOptimized, Mode=TwoWay}"
+                                                  HorizontalAlignment="Stretch" />
+                                        <TextBlock Text="Kernel consistency tier: 0 = stock, 1 = bit-identical (default), 2 = near-lossless, 3 = fastest. Tiers 2-3 need the 310.9 build; the 310.1 build runs them as 1."
+                                                   Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Preset"
                                                Style="{StaticResource FieldLabelText}" Margin="0,18,12,10" />

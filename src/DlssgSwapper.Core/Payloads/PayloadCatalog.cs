@@ -21,12 +21,14 @@ public sealed class PayloadCatalog
     private readonly Dictionary<string, PayloadEntryPoint> _bySha256;
     private readonly Dictionary<string, PayloadVersion> _legacyBySha256;
 
-    // Catalog version IDs were renamed from 0.3.0 / 0.3.0-310.1 when the payload moved to 0.3.1.
-    // Saved profiles still carry the old IDs; map them so the right version is selected.
+    // Catalog version IDs were renamed as the payload moved forward; saved profiles still carry the
+    // old IDs, so map them to the current line.
     private static readonly Dictionary<string, string> VersionAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["0.3.0"] = "0.3.1",
-        ["0.3.0-310.1"] = "0.3.1-310.1",
+        ["0.3.0"] = "0.3.2",
+        ["0.3.0-310.1"] = "0.3.2-310.1",
+        ["0.3.1"] = "0.3.2",
+        ["0.3.1-310.1"] = "0.3.2-310.1",
     };
 
     private PayloadCatalog(string root, IReadOnlyList<PayloadVersion> versions)

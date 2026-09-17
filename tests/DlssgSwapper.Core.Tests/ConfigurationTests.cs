@@ -133,6 +133,31 @@ public class IniApplierTests
         Assert.Contains("MaxGeneratedFrames", ex.Message);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void OptimizedTier_AcceptsZeroToThree(int tier)
+    {
+        var ini = IniFile.Load(Template());
+        IniApplier.Apply(ini, FrameGenSettings.Defaults() with { Optimized = tier });
+
+        Assert.Contains($"Optimized={tier}", ini.Render());
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(4)]
+    public void OptimizedTier_OutOfRange_Throws(int tier)
+    {
+        var ini = IniFile.Load(Template());
+        var settings = FrameGenSettings.Defaults() with { Optimized = tier };
+
+        var ex = Assert.Throws<ArgumentException>(() => IniApplier.Apply(ini, settings));
+        Assert.Contains("Optimized", ex.Message);
+    }
+
     [Fact]
     public void InvalidPreset_Throws()
     {

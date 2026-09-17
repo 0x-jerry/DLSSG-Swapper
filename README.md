@@ -11,7 +11,7 @@ uninstalls cleanly. Built with WinUI 3 / Windows App SDK.
 - Installs any proxy (`version.dll`, `winmm.dll`, `dbghelp.dll`, `dinput8.dll`,
   `dxgi.dll`, `d3d12.dll`) plus `dlssg_sm86.ini`; swapping keeps only one
   package proxy. `version.dll` is the default.
-- Bundles the 0.3.1 payloads (310.9 up to 6X, 310.1 up to 4X), SHA256-verified.
+- Bundles the 0.3.2 payloads (310.9 up to 6X, 310.1 up to 4X), SHA256-verified.
 - Writes the supported INI keys, preserving comments, clamped to the payload.
   Factory default is 4X; 6X needs `MaxGeneratedFrames=5` on 310.9.
 - Backs up pre-existing files once per game and restores them on uninstall.

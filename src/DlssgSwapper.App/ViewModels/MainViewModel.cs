@@ -105,7 +105,7 @@ public sealed class MainViewModel : ObservableObject
     private PayloadVersion? _selectedVersion;
     private EntryPointOption? _selectedEntryPoint;
     private bool _enabled = true;
-    private bool _optimized = true;
+    private int _selectedOptimized = 1;
     private string _selectedRouter = "Auto";
     private string _selectedKernelImage = "Auto";
     private string _selectedPreset = "Auto";
@@ -130,6 +130,7 @@ public sealed class MainViewModel : ObservableObject
         Routers = new ObservableCollection<string> { "Auto", "SM86", "SM75" };
         KernelImages = new ObservableCollection<string> { "Auto", "Cubin", "PTX", "Original" };
         MaxFrames = new ObservableCollection<int>();
+        OptimizedTiers = new ObservableCollection<int> { 0, 1, 2, 3 };
         LoggingLevels = new ObservableCollection<int> { 0, 1, 2, 3 };
         Presets = new ObservableCollection<string> { "Auto", "A", "B" };
 
@@ -154,6 +155,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> Routers { get; }
     public ObservableCollection<string> KernelImages { get; }
     public ObservableCollection<int> MaxFrames { get; }
+    public ObservableCollection<int> OptimizedTiers { get; }
     public ObservableCollection<int> LoggingLevels { get; }
     public ObservableCollection<string> Presets { get; }
     public ObservableCollection<EntryPointOption> EntryPointOptions { get; } = new();
@@ -235,7 +237,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
-    public bool Optimized { get => _optimized; set => Set(ref _optimized, value); }
+    public int SelectedOptimized { get => _selectedOptimized; set => Set(ref _selectedOptimized, value); }
     public string SelectedRouter { get => _selectedRouter; set => Set(ref _selectedRouter, value); }
     public string SelectedKernelImage { get => _selectedKernelImage; set => Set(ref _selectedKernelImage, value); }
     public string SelectedPreset { get => _selectedPreset; set => Set(ref _selectedPreset, value); }
@@ -296,7 +298,7 @@ public sealed class MainViewModel : ObservableObject
     private FrameGenSettings CurrentSettings => new()
     {
         Enabled = _enabled ? 1 : 0,
-        Optimized = _optimized ? 1 : 0,
+        Optimized = _selectedOptimized,
         Router = _selectedRouter,
         KernelImage = _selectedKernelImage,
         Preset = _selectedPreset,
@@ -342,7 +344,7 @@ public sealed class MainViewModel : ObservableObject
         if (settings != null)
         {
             if (settings.Enabled != null) Enabled = settings.Enabled == 1;
-            if (settings.Optimized != null) Optimized = settings.Optimized == 1;
+            if (settings.Optimized != null) SelectedOptimized = Math.Clamp(settings.Optimized.Value, 0, 3);
             if (settings.Router != null) SelectedRouter = settings.Router;
             if (settings.KernelImage != null) SelectedKernelImage = settings.KernelImage;
             if (settings.Preset != null) SelectedPreset = settings.Preset;
