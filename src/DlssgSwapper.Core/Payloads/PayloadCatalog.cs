@@ -25,10 +25,12 @@ public sealed class PayloadCatalog
     // old IDs, so map them to the current line.
     private static readonly Dictionary<string, string> VersionAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["0.3.0"] = "0.3.2",
-        ["0.3.0-310.1"] = "0.3.2-310.1",
-        ["0.3.1"] = "0.3.2",
-        ["0.3.1-310.1"] = "0.3.2-310.1",
+        ["0.3.0"] = "0.3.5",
+        ["0.3.0-310.1"] = "0.3.5-310.1",
+        ["0.3.1"] = "0.3.5",
+        ["0.3.1-310.1"] = "0.3.5-310.1",
+        ["0.3.2"] = "0.3.5",
+        ["0.3.2-310.1"] = "0.3.5-310.1",
     };
 
     private PayloadCatalog(string root, IReadOnlyList<PayloadVersion> versions)

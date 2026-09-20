@@ -12,12 +12,12 @@ public class PayloadCatalogTests
         var catalog = PayloadCatalog.Load(PayloadRoot);
 
         Assert.Equal(2, catalog.Versions.Count);
-        var current = catalog.GetVersion("0.3.2");
+        var current = catalog.GetVersion("0.3.5");
         Assert.NotNull(current);
         Assert.Equal(5, current.MaxGeneratedFrames);
         Assert.Equal(6, current.EntryPoints.Count);
         Assert.Equal("version.dll", current.EntryPoints.First(e => e.Recommended).FileName);
-        Assert.Equal(3, catalog.GetVersion("0.3.2-310.1")!.MaxGeneratedFrames);
+        Assert.Equal(3, catalog.GetVersion("0.3.5-310.1")!.MaxGeneratedFrames);
         Assert.Null(catalog.GetVersion("0.2.4"));
     }
 
@@ -26,17 +26,19 @@ public class PayloadCatalogTests
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
 
-        Assert.Same(catalog.GetVersion("0.3.2"), catalog.GetVersion("0.3.0"));
-        Assert.Same(catalog.GetVersion("0.3.2-310.1"), catalog.GetVersion("0.3.0-310.1"));
-        Assert.Same(catalog.GetVersion("0.3.2"), catalog.GetVersion("0.3.1"));
-        Assert.Same(catalog.GetVersion("0.3.2-310.1"), catalog.GetVersion("0.3.1-310.1"));
+        Assert.Same(catalog.GetVersion("0.3.5"), catalog.GetVersion("0.3.0"));
+        Assert.Same(catalog.GetVersion("0.3.5-310.1"), catalog.GetVersion("0.3.0-310.1"));
+        Assert.Same(catalog.GetVersion("0.3.5"), catalog.GetVersion("0.3.1"));
+        Assert.Same(catalog.GetVersion("0.3.5-310.1"), catalog.GetVersion("0.3.1-310.1"));
+        Assert.Same(catalog.GetVersion("0.3.5"), catalog.GetVersion("0.3.2"));
+        Assert.Same(catalog.GetVersion("0.3.5-310.1"), catalog.GetVersion("0.3.2-310.1"));
     }
 
     [Fact]
     public void FindLegacyVersionOf_RecognisesPreviousReleaseHashes()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.3.2")!;
+        var current = catalog.GetVersion("0.3.5")!;
         Assert.NotEmpty(current.LegacySha256);
 
         string legacyHash = current.LegacySha256[0];
@@ -61,7 +63,7 @@ public class PayloadCatalogTests
     public void FindBySha256_ResolvesInstalledProxy()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.3.2")!;
+        var current = catalog.GetVersion("0.3.5")!;
         string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(current, current.FindEntryPoint("dbghelp.dll")!));
 
         var entry = catalog.FindBySha256(hash);
@@ -74,8 +76,8 @@ public class PayloadCatalogTests
     public void FindBySha256_DistinguishesTheTwoBudgets()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.3.2")!;
-        var legacy = catalog.GetVersion("0.3.2-310.1")!;
+        var current = catalog.GetVersion("0.3.5")!;
+        var legacy = catalog.GetVersion("0.3.5-310.1")!;
 
         string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(legacy, legacy.FindEntryPoint("version.dll")!));
         Assert.Same(legacy, catalog.FindVersionOf(hash));

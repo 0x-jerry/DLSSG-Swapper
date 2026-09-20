@@ -30,8 +30,8 @@ public class InstallationServiceTests : IDisposable
         if (Directory.Exists(_backupRoot)) Directory.Delete(_backupRoot, recursive: true);
     }
 
-    private PayloadVersion Current => _catalog.GetVersion("0.3.2")!;
-    private PayloadVersion Legacy => _catalog.GetVersion("0.3.2-310.1")!;
+    private PayloadVersion Current => _catalog.GetVersion("0.3.5")!;
+    private PayloadVersion Legacy => _catalog.GetVersion("0.3.5-310.1")!;
     private string InstalledIni => Path.Combine(_gameDir, InstallationService.IniFileName);
 
     private static FrameGenSettings Defaults => FrameGenSettings.Defaults();
@@ -178,7 +178,7 @@ public class InstallationServiceTests : IDisposable
         {
             byte[] currentBytes = { 0x4D, 0x5A, 0x03, 0x01 };
             byte[] legacyBytes = { 0x4D, 0x5A, 0x02, 0x00 };
-            string binDir = Path.Combine(root, "bin", "0.3.2");
+            string binDir = Path.Combine(root, "bin", "0.3.5");
             string templateDir = Path.Combine(root, "templates");
             Directory.CreateDirectory(binDir);
             Directory.CreateDirectory(templateDir);
@@ -198,8 +198,8 @@ public class InstallationServiceTests : IDisposable
             File.WriteAllText(Path.Combine(root, "catalog.json"), $$"""
             {
               "versions": [{
-                "version": "0.3.2",
-                "displayName": "0.3.2",
+                "version": "0.3.5",
+                "displayName": "0.3.5",
                 "sourceRoot": "external/dlssg_for_sm86",
                 "maxGeneratedFrames": 5,
                 "templates": { "default": "templates/sm86-default.ini" },
@@ -213,7 +213,7 @@ public class InstallationServiceTests : IDisposable
 
             var catalog = PayloadCatalog.Load(root);
             var service = new InstallationService(catalog, _ => new BackupStore(backupRoot));
-            var version = catalog.GetVersion("0.3.2")!;
+            var version = catalog.GetVersion("0.3.5")!;
             var entry = version.FindEntryPoint("version.dll")!;
             string exe = Path.Combine(gameDir, "FakeGame.exe");
             File.WriteAllBytes(exe, new byte[] { 0x4D, 0x5A });
