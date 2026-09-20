@@ -127,9 +127,6 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
                                     <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
@@ -145,46 +142,21 @@
                                                    Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Preset"
-                                               Style="{StaticResource FieldLabelText}" Margin="0,18,12,10" />
-                                    <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,18,0,10">
-                                        <ComboBox ItemsSource="{Binding Presets}"
-                                                  SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
-                                                  HorizontalAlignment="Stretch" />
-                                        <TextBlock Text="Render preset (UI recomposition); 310.9 build only."
-                                                   Style="{StaticResource CaptionText}" Margin="2,3,0,0" />
-                                    </StackPanel>
-
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Router"
-                                               Style="{StaticResource FieldLabelText}" Margin="0,0,12,2" />
-                                    <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,10">
-                                        <ComboBox ItemsSource="{Binding Routers}" SelectedItem="{Binding SelectedRouter, Mode=TwoWay}"
-                                                  HorizontalAlignment="Stretch" />
-                                        <TextBlock Text="{Binding GpuRouterSuggestion}" Style="{StaticResource CaptionText}"
-                                                   Margin="2,3,0,0" />
-                                    </StackPanel>
-
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Kernel image"
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Max generated frames"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
-                                    <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding KernelImages}"
-                                              SelectedItem="{Binding SelectedKernelImage, Mode=TwoWay}" HorizontalAlignment="Stretch"
-                                              Margin="0,0,0,10" />
-
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Max generated frames"
-                                               Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
-                                    <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,10">
+                                    <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
                                         <ComboBox ItemsSource="{Binding MaxFrames}"
                                                   SelectedItem="{Binding SelectedMaxFrames, Mode=TwoWay}" HorizontalAlignment="Stretch" />
                                         <TextBlock Text="0 = runtime default; 1 = 2X, 3 = 4X, 5 = 6X. The 310.1 build caps at 4X."
                                                    Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Logging level"
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Logging level"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,0" />
-                                    <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding LoggingLevels}"
+                                    <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding LoggingLevels}"
                                               SelectedItem="{Binding SelectedLoggingLevel, Mode=TwoWay}" HorizontalAlignment="Stretch" />
 
-                                    <CheckBox Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2"
+                                    <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
                                               Content="Allow overwriting foreign files (they are backed up first)"
                                               IsChecked="{Binding OverwriteForeign, Mode=TwoWay}" Margin="0,18,0,0" />
                                 </Grid>

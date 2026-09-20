@@ -106,14 +106,10 @@ public sealed class MainViewModel : ObservableObject
     private EntryPointOption? _selectedEntryPoint;
     private bool _enabled = true;
     private int _selectedOptimized = 1;
-    private string _selectedRouter = "Auto";
-    private string _selectedKernelImage = "Auto";
-    private string _selectedPreset = "Auto";
     private int _selectedMaxFrames = 3;
     private int _selectedLoggingLevel = 1;
     private bool _overwriteForeign;
     private string _gpuSummary = "Detecting GPU…";
-    private string _gpuRouterSuggestion = "";
     private string _gpuWarning = "";
     private bool _gpuSupported = true;
     private string _statusText = "Add or select a game to begin.";
@@ -127,12 +123,9 @@ public sealed class MainViewModel : ObservableObject
         _overwriteForeign = _settings.DefaultOverwriteForeign;
 
         Versions = new ObservableCollection<PayloadVersion>(_catalog.Versions);
-        Routers = new ObservableCollection<string> { "Auto", "SM86", "SM75" };
-        KernelImages = new ObservableCollection<string> { "Auto", "Cubin", "PTX", "Original" };
         MaxFrames = new ObservableCollection<int>();
         OptimizedTiers = new ObservableCollection<int> { 0, 1, 2, 3 };
         LoggingLevels = new ObservableCollection<int> { 0, 1, 2, 3 };
-        Presets = new ObservableCollection<string> { "Auto", "A", "B" };
 
         AddGameCommand = new AsyncRelayCommand(AddGame);
         ScanSteamCommand = new AsyncRelayCommand(ScanSteam);
@@ -152,12 +145,9 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<GameProfileViewModel> Profiles { get; } = new();
     public ObservableCollection<PayloadVersion> Versions { get; }
-    public ObservableCollection<string> Routers { get; }
-    public ObservableCollection<string> KernelImages { get; }
     public ObservableCollection<int> MaxFrames { get; }
     public ObservableCollection<int> OptimizedTiers { get; }
     public ObservableCollection<int> LoggingLevels { get; }
-    public ObservableCollection<string> Presets { get; }
     public ObservableCollection<EntryPointOption> EntryPointOptions { get; } = new();
 
     public AsyncRelayCommand AddGameCommand { get; }
@@ -238,15 +228,11 @@ public sealed class MainViewModel : ObservableObject
 
     public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
     public int SelectedOptimized { get => _selectedOptimized; set => Set(ref _selectedOptimized, value); }
-    public string SelectedRouter { get => _selectedRouter; set => Set(ref _selectedRouter, value); }
-    public string SelectedKernelImage { get => _selectedKernelImage; set => Set(ref _selectedKernelImage, value); }
-    public string SelectedPreset { get => _selectedPreset; set => Set(ref _selectedPreset, value); }
     public int SelectedMaxFrames { get => _selectedMaxFrames; set => Set(ref _selectedMaxFrames, value); }
     public int SelectedLoggingLevel { get => _selectedLoggingLevel; set => Set(ref _selectedLoggingLevel, value); }
     public bool OverwriteForeign { get => _overwriteForeign; set => Set(ref _overwriteForeign, value); }
 
     public string GpuSummary { get => _gpuSummary; set => Set(ref _gpuSummary, value); }
-    public string GpuRouterSuggestion { get => _gpuRouterSuggestion; set => Set(ref _gpuRouterSuggestion, value); }
 
     public string GpuWarning
     {
@@ -299,9 +285,6 @@ public sealed class MainViewModel : ObservableObject
     {
         Enabled = _enabled ? 1 : 0,
         Optimized = _selectedOptimized,
-        Router = _selectedRouter,
-        KernelImage = _selectedKernelImage,
-        Preset = _selectedPreset,
         MaxGeneratedFrames = _selectedMaxFrames,
         LoggingLevel = _selectedLoggingLevel,
     };
@@ -345,9 +328,6 @@ public sealed class MainViewModel : ObservableObject
         {
             if (settings.Enabled != null) Enabled = settings.Enabled == 1;
             if (settings.Optimized != null) SelectedOptimized = Math.Clamp(settings.Optimized.Value, 0, 3);
-            if (settings.Router != null) SelectedRouter = settings.Router;
-            if (settings.KernelImage != null) SelectedKernelImage = settings.KernelImage;
-            if (settings.Preset != null) SelectedPreset = settings.Preset;
             if (settings.MaxGeneratedFrames != null) SelectedMaxFrames = settings.MaxGeneratedFrames.Value;
             if (settings.LoggingLevel != null) SelectedLoggingLevel = settings.LoggingLevel.Value;
         }
@@ -653,10 +633,6 @@ public sealed class MainViewModel : ObservableObject
         GpuSummary = info.Name != null
             ? $"{info.Name}  ·  compute {info.ComputeCapability}  ·  driver {info.DriverVersion}"
             : "GPU not detected (nvidia-smi unavailable)";
-        GpuRouterSuggestion = info.SuggestedRouter != null ? $"Suggested Router: {info.SuggestedRouter}" : "";
-        if (info.SuggestedRouter != null)
-            SelectedRouter = info.SuggestedRouter;
-
         GpuSupported = info.IsSupported;
         GpuWarning = info.IsSupported
             ? ""

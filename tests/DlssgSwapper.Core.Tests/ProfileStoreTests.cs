@@ -17,7 +17,7 @@ public class ProfileStoreTests
             var profile = GameProfile.Create("Black Myth: Wukong",
                 @"D:\Games\BlackMythWukong\b1\Binaries\Win64\b1-Win64-Shipping.exe",
                 GameSource.Manual)
-                with { Settings = new Configuration.FrameGenSettings { Router = "SM75" } };
+                with { Settings = new Configuration.FrameGenSettings { Optimized = 2 } };
             store.Add(profile);
             Assert.Single(store.Profiles);
             store.Save();
@@ -25,7 +25,7 @@ public class ProfileStoreTests
             var reloaded = new ProfileStore(path);
             var found = Assert.Single(reloaded.Profiles);
             Assert.Equal(profile.Id, found.Id);
-            Assert.Equal("SM75", found.Settings?.Router);
+            Assert.Equal(2, found.Settings?.Optimized);
             Assert.Equal(GameSource.Manual, found.Source);
         }
         finally

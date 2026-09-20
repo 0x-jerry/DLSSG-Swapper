@@ -15,13 +15,6 @@ public sealed record GpuInfo(string? Name, string? ComputeCapability, string? Dr
 {
     public bool IsSupported => Sm is SmTarget.Sm86 or SmTarget.Sm75;
 
-    public string? SuggestedRouter => Sm switch
-    {
-        SmTarget.Sm86 => "SM86",
-        SmTarget.Sm75 => "SM75",
-        _ => null,
-    };
-
     public string Describe() => Name ?? (ComputeCapability != null ? $"compute capability {ComputeCapability}" : "unknown GPU");
 }
 

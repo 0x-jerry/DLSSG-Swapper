@@ -6,11 +6,10 @@ public class IniFileTests
 {
     private const string Sample = """
         ; Header comment
-        [Compatibility]
-        ; SM86 for Ampere
-        Router=Auto
-        KernelImage=Auto
-        Preset=Auto
+        [General]
+        ; frame generation switch
+        Enabled=1
+        Capture=0
 
         [FrameGeneration]
         Optimized=1
@@ -24,16 +23,15 @@ public class IniFileTests
     public void Set_ChangesOnlyTargetKeyAndPreservesCommentsAndOrder()
     {
         var ini = IniFile.Parse(Sample);
-        ini.Set("Compatibility", "Router", "SM75");
+        ini.Set("General", "Enabled", "0");
         ini.Set("Logging", "Level", "2");
 
         string rendered = ini.Render();
-        Assert.Contains("; SM86 for Ampere", rendered);
-        Assert.Contains("Router=SM75", rendered);
+        Assert.Contains("; frame generation switch", rendered);
+        Assert.Contains("Enabled=0", rendered);
         Assert.Contains("Level=2", rendered);
-        Assert.Contains("KernelImage=Auto", rendered); // untouched
-        Assert.DoesNotContain("Preset=B", rendered);
-        Assert.True(rendered.IndexOf("Router=SM75") < rendered.IndexOf("[FrameGeneration]"));
+        Assert.Contains("Capture=0", rendered); // untouched
+        Assert.True(rendered.IndexOf("Enabled=0") < rendered.IndexOf("[FrameGeneration]"));
     }
 
     [Fact]
@@ -64,7 +62,7 @@ public class IniFileTests
     public void Render_IsIdempotent()
     {
         var ini = IniFile.Parse(Sample);
-        ini.Set("Compatibility", "KernelImage", "Cubin");
+        ini.Set("Logging", "Directory", "custom");
         string once = ini.Render();
         var again = IniFile.Parse(once);
         Assert.Equal(once, again.Render());
@@ -74,7 +72,7 @@ public class IniFileTests
     public void Get_ReturnsValue_IgnoringCase()
     {
         var ini = IniFile.Parse(Sample);
-        Assert.Equal("Auto", ini.Get("compatibility", "router"));
+        Assert.Equal("1", ini.Get("general", "enabled"));
         Assert.Null(ini.Get("Logging", "Missing"));
     }
 }
@@ -92,9 +90,6 @@ public class IniApplierTests
         {
             Enabled = 0,
             Optimized = 0,
-            Router = "SM86",
-            KernelImage = "Cubin",
-            Preset = "B",
             MaxGeneratedFrames = 2,
             LoggingLevel = 0,
         });
@@ -102,9 +97,6 @@ public class IniApplierTests
         string rendered = ini.Render();
         Assert.Contains("Enabled=0", rendered);
         Assert.Contains("Optimized=0", rendered);
-        Assert.Contains("Router=SM86", rendered);
-        Assert.Contains("KernelImage=Cubin", rendered);
-        Assert.Contains("Preset=B", rendered);
         Assert.Contains("MaxGeneratedFrames=2", rendered);
         Assert.Contains("Level=0", rendered);
     }
@@ -159,34 +151,12 @@ public class IniApplierTests
     }
 
     [Fact]
-    public void InvalidPreset_Throws()
-    {
-        var ini = IniFile.Load(Template());
-        var settings = FrameGenSettings.Defaults() with { Preset = "C" };
-
-        var ex = Assert.Throws<ArgumentException>(() => IniApplier.Apply(ini, settings));
-        Assert.Contains("Preset", ex.Message);
-    }
-
-    [Fact]
     public void Defaults_MatchTheFactoryIni()
     {
         var settings = FrameGenSettings.Defaults();
         Assert.Equal(1, settings.Enabled);
         Assert.Equal(1, settings.Optimized);
-        Assert.Equal("Auto", settings.Router);
-        Assert.Equal("Auto", settings.KernelImage);
-        Assert.Equal("Auto", settings.Preset);
         Assert.Equal(3, settings.MaxGeneratedFrames);
         Assert.Equal(1, settings.LoggingLevel);
-    }
-
-    [Fact]
-    public void Apply_AcceptsSm75Router()
-    {
-        var ini = IniFile.Load(Template());
-        IniApplier.Apply(ini, FrameGenSettings.Defaults() with { Router = "SM75" });
-
-        Assert.Contains("Router=SM75", ini.Render());
     }
 }

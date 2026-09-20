@@ -48,9 +48,6 @@ public class InstallationServiceTests : IDisposable
         Assert.Equal("1", ini.Get("General", "Enabled"));
         Assert.Equal("1", ini.Get("FrameGeneration", "Optimized"));
         Assert.Equal("3", ini.Get("FrameGeneration", "MaxGeneratedFrames"));
-        Assert.Equal("Auto", ini.Get("Compatibility", "Router"));
-        Assert.Equal("Auto", ini.Get("Compatibility", "KernelImage"));
-        Assert.Equal("Auto", ini.Get("Compatibility", "Preset"));
         Assert.Equal("1", ini.Get("Logging", "Level"));
 
         var inspect = _service.Inspect(_profile);
@@ -160,7 +157,7 @@ public class InstallationServiceTests : IDisposable
     public void ModifiedIni_IsLeftAloneOnUninstall()
     {
         _service.Install(_profile, Current, Current.FindEntryPoint("version.dll")!, Defaults);
-        File.WriteAllText(InstalledIni, "[Compatibility]\nRouter=SM75\n");
+        File.WriteAllText(InstalledIni, "[General]\nEnabled=0\n");
 
         var warnings = _service.Uninstall(_profile);
         Assert.Contains(warnings, w => w.Contains("modified"));
@@ -194,7 +191,7 @@ public class InstallationServiceTests : IDisposable
 
             File.WriteAllText(Path.Combine(templateDir, "sm86-default.ini"),
                 "[General]\nEnabled=1\n[FrameGeneration]\nOptimized=1\nMaxGeneratedFrames=3\n" +
-                "[Compatibility]\nRouter=Auto\nKernelImage=Auto\nPreset=Auto\n[Logging]\nLevel=1\n");
+                "[FrameGeneration]\nOptimized=1\nMaxGeneratedFrames=3\n[Logging]\nLevel=1\n");
             File.WriteAllText(Path.Combine(root, "catalog.json"), $$"""
             {
               "versions": [{

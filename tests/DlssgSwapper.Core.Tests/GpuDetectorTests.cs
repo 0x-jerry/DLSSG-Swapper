@@ -13,7 +13,6 @@ public class GpuDetectorTests
         Assert.Equal("591.86", info.DriverVersion);
         Assert.Equal(SmTarget.Sm86, info.Sm);
         Assert.True(info.IsSupported);
-        Assert.Equal("SM86", info.SuggestedRouter);
     }
 
     [Fact]
@@ -23,7 +22,6 @@ public class GpuDetectorTests
         Assert.Equal("NVIDIA GeForce RTX 2060 Super", info.Name);
         Assert.Equal(SmTarget.Sm75, info.Sm);
         Assert.True(info.IsSupported);
-        Assert.Equal("SM75", info.SuggestedRouter);
     }
 
     [Fact]
@@ -32,7 +30,6 @@ public class GpuDetectorTests
         var info = GpuDetector.ParseOutput("\"NVIDIA GeForce GTX 1660 Super\", 7.5, 591.86");
         Assert.Equal(SmTarget.Unsupported, info.Sm);
         Assert.False(info.IsSupported);
-        Assert.Null(info.SuggestedRouter);
     }
 
     [Fact]
