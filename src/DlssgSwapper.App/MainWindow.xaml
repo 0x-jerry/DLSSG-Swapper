@@ -26,6 +26,7 @@
                                  CompactPaneLength="48"
                                  IsBackButtonVisible="Collapsed"
                                  IsPaneToggleButtonVisible="True"
+                                 IsSettingsVisible="False"
                                  SelectionChanged="OnSelectionChanged">
             <controls:NavigationView.MenuItems>
                 <controls:NavigationViewItem Content="Games" Tag="Games">
@@ -34,6 +35,8 @@
                     </controls:NavigationViewItem.Icon>
                 </controls:NavigationViewItem>
             </controls:NavigationView.MenuItems>
+            <!-- Settings lives here with a Tag the code-behind routes on; the NavigationView's own
+                 built-in settings item is switched off above so the pane shows it only once. -->
             <controls:NavigationView.FooterMenuItems>
                 <controls:NavigationViewItem Content="Settings" Tag="Settings">
                     <controls:NavigationViewItem.Icon>
