@@ -102,7 +102,7 @@
                                     </ComboBox>
                                 </Grid>
                                 <TextBlock Style="{StaticResource CaptionText}" Margin="0,12,0,0"
-                                           Text="The entry point is the proxy DLL name (usually version.dll). Only one package proxy may be installed per game." />
+                                           Text="Installs the proxy DLL, dlssg_sm86.ini and the dlssg_sm86 folder next to the game executable. Only one package proxy may be installed per game." />
                                 <TextBlock Style="{StaticResource CaptionText}" Margin="0,4,0,0"
                                            Text="{Binding EntryPointHint}" TextWrapping="Wrap" />
                             </StackPanel>
@@ -127,36 +127,58 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
                                     <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                                               Content="Frame generation enabled ([General] Enabled)"
                                               IsChecked="{Binding Enabled, Mode=TwoWay}" />
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Optimized"
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Engine"
                                                Style="{StaticResource FieldLabelText}" Margin="0,16,12,10" />
                                     <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,16,0,10">
+                                        <ComboBox ItemsSource="{Binding Engines}"
+                                                  SelectedItem="{Binding SelectedEngineOption, Mode=TwoWay}"
+                                                  DisplayMemberPath="Label" HorizontalAlignment="Stretch" />
+                                        <TextBlock Text="{Binding SelectedEngineOption.Note}"
+                                                   Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Optimized"
+                                               Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
+                                    <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
                                         <ComboBox ItemsSource="{Binding OptimizedTiers}"
                                                   SelectedItem="{Binding SelectedOptimized, Mode=TwoWay}"
                                                   HorizontalAlignment="Stretch" />
-                                        <TextBlock Text="Kernel consistency tier: 0 = stock, 1 = bit-identical (default), 2 = near-lossless, 3 = fastest. Tiers 2-3 need the 310.9 build; the 310.1 build runs them as 1."
+                                        <TextBlock Text="Kernel consistency tier: 0 = stock, 1 = bit-identical, 2 = near-lossless (factory default), 3 = fastest."
                                                    Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Max generated frames"
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="DLSS preset"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
-                                    <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
+                                    <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,10">
+                                        <ComboBox ItemsSource="{Binding Presets}"
+                                                  SelectedItem="{Binding SelectedPresetOption, Mode=TwoWay}"
+                                                  DisplayMemberPath="Label" HorizontalAlignment="Stretch" />
+                                        <TextBlock Text="{Binding SelectedPresetOption.Note}"
+                                                   Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Max generated frames"
+                                               Style="{StaticResource FieldLabelText}" Margin="0,0,12,10" />
+                                    <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,10">
                                         <ComboBox ItemsSource="{Binding MaxFrames}"
                                                   SelectedItem="{Binding SelectedMaxFrames, Mode=TwoWay}" HorizontalAlignment="Stretch" />
-                                        <TextBlock Text="0 = runtime default; 1 = 2X, 3 = 4X, 5 = 6X. The 310.1 build caps at 4X."
+                                        <TextBlock Text="0 = runtime default; 1 = 2X, 3 = 4X, 5 = 6X. The bundled runtime 310.9.16 supports 6X; Engine=XeSS stays at 2X."
                                                    Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Logging level"
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Logging level"
                                                Style="{StaticResource FieldLabelText}" Margin="0,0,12,0" />
-                                    <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding LoggingLevels}"
+                                    <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{Binding LoggingLevels}"
                                               SelectedItem="{Binding SelectedLoggingLevel, Mode=TwoWay}" HorizontalAlignment="Stretch" />
 
-                                    <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                    <CheckBox Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
                                               Content="Allow overwriting foreign files (they are backed up first)"
                                               IsChecked="{Binding OverwriteForeign, Mode=TwoWay}" Margin="0,18,0,0" />
                                 </Grid>
@@ -216,7 +238,7 @@
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Text="Installation" Style="{StaticResource SectionTitleText}" />
                                         <TextBlock Style="{StaticResource CaptionText}" Margin="0,2,0,0"
-                                                   Text="Installs the selected payload next to the executable. Turn off to uninstall and restore the originals." />
+                                                   Text="Installs the selected payload (proxy, INI and the dlssg_sm86 folder) next to the executable. Turn off to uninstall and restore the originals." />
                                     </StackPanel>
                                     <ToggleSwitch Grid.Column="1" IsOn="{Binding IsInstalled, Mode=TwoWay}"
                                                    IsEnabled="{Binding HasSelectedProfile}"

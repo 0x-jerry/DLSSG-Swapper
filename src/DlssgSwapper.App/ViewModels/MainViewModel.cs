@@ -76,11 +76,13 @@ public sealed class GameProfileViewModel : ObservableObject
 
     public string InstallSummary => Inspection.Kind switch
     {
+        InstallKind.Installed when Inspection.OutdatedLayout =>
+            $"0.3.x install detected ({Inspection.InstalledEntryPoint?.FileName ?? ""}) - 0.4.0 needs a reinstall",
         InstallKind.Installed when Inspection.OutdatedProxy =>
             $"Outdated proxy {Inspection.InstalledEntryPoint?.FileName ?? ""} from a previous release - reinstall to update",
         InstallKind.Installed =>
             $"Installed {Inspection.InstalledVersion?.Version ?? "?"} via {Inspection.InstalledEntryPoint?.FileName ?? "?"}",
-        InstallKind.Partial => "Partial install (proxy or INI missing)",
+        InstallKind.Partial => "Partial install (proxy, INI or dlssg_sm86 missing)",
         _ => "Not installed",
     };
 }
@@ -94,6 +96,12 @@ public sealed record EntryPointOption(PayloadEntryPoint EntryPoint, bool IsPrese
         : EntryPoint.Note ?? "";
 }
 
+// ComboBox entries for the settings that come from enums: the INI value must keep the exact
+// spelling the mod expects, so the label and the value are kept apart.
+public sealed record EngineOption(FrameGenEngine Value, string Label, string Note);
+
+public sealed record PresetOption(FrameGenPreset Value, string Label, string Note);
+
 public sealed class MainViewModel : ObservableObject
 {
     private readonly ProfileStore _store = ProfileStore.OpenDefault();
@@ -105,7 +113,9 @@ public sealed class MainViewModel : ObservableObject
     private PayloadVersion? _selectedVersion;
     private EntryPointOption? _selectedEntryPoint;
     private bool _enabled = true;
-    private int _selectedOptimized = 1;
+    private int _selectedOptimized = 2;
+    private FrameGenPreset _selectedPreset = FrameGenPreset.Auto;
+    private FrameGenEngine _selectedEngine = FrameGenEngine.Dlss;
     private int _selectedMaxFrames = 3;
     private int _selectedLoggingLevel = 1;
     private bool _overwriteForeign;
@@ -122,9 +132,21 @@ public sealed class MainViewModel : ObservableObject
         _service = new InstallationService(_catalog);
         _overwriteForeign = _settings.DefaultOverwriteForeign;
 
-        Versions = new ObservableCollection<PayloadVersion>(_catalog.Versions);
+        Versions = new ObservableCollection<PayloadVersion>(_catalog.InstallableVersions);
         MaxFrames = new ObservableCollection<int>();
         OptimizedTiers = new ObservableCollection<int> { 0, 1, 2, 3 };
+        Presets = new ObservableCollection<PresetOption>
+        {
+            new(FrameGenPreset.Auto, "Auto", "Let the game or the driver profile decide"),
+            new(FrameGenPreset.A, "A", "Force UI recomposition off"),
+            new(FrameGenPreset.B, "B", "Force UI recomposition on (needs a UI plane from the game)"),
+            new(FrameGenPreset.C, "C — FG Lite", "About a third less GPU time per generated frame, slightly lower image quality"),
+        };
+        Engines = new ObservableCollection<EngineOption>
+        {
+            new(FrameGenEngine.Dlss, "DLSS", "NVIDIA's DLSS-G model on this project's SM86/SM75 kernels"),
+            new(FrameGenEngine.XeSS, "XeSS", "Intel's XeSS-FG model, 2X only; a slower engine on RTX 30"),
+        };
         LoggingLevels = new ObservableCollection<int> { 0, 1, 2, 3 };
 
         AddGameCommand = new AsyncRelayCommand(AddGame);
@@ -147,6 +169,8 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<PayloadVersion> Versions { get; }
     public ObservableCollection<int> MaxFrames { get; }
     public ObservableCollection<int> OptimizedTiers { get; }
+    public ObservableCollection<PresetOption> Presets { get; }
+    public ObservableCollection<EngineOption> Engines { get; }
     public ObservableCollection<int> LoggingLevels { get; }
     public ObservableCollection<EntryPointOption> EntryPointOptions { get; } = new();
 
@@ -228,6 +252,46 @@ public sealed class MainViewModel : ObservableObject
 
     public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
     public int SelectedOptimized { get => _selectedOptimized; set => Set(ref _selectedOptimized, value); }
+
+    public FrameGenEngine SelectedEngine
+    {
+        get => _selectedEngine;
+        set
+        {
+            if (!Set(ref _selectedEngine, value)) return;
+            OnPropertyChanged(nameof(SelectedEngineOption));
+            RebuildMaxFrames(_selectedVersion?.MaxGeneratedFrames ?? 5);
+        }
+    }
+
+    public FrameGenPreset SelectedPreset
+    {
+        get => _selectedPreset;
+        set
+        {
+            if (!Set(ref _selectedPreset, value)) return;
+            OnPropertyChanged(nameof(SelectedPresetOption));
+        }
+    }
+
+    public EngineOption? SelectedEngineOption
+    {
+        get => Engines.FirstOrDefault(o => o.Value == _selectedEngine);
+        set
+        {
+            if (value != null) SelectedEngine = value.Value;
+        }
+    }
+
+    public PresetOption? SelectedPresetOption
+    {
+        get => Presets.FirstOrDefault(o => o.Value == _selectedPreset);
+        set
+        {
+            if (value != null) SelectedPreset = value.Value;
+        }
+    }
+
     public int SelectedMaxFrames { get => _selectedMaxFrames; set => Set(ref _selectedMaxFrames, value); }
     public int SelectedLoggingLevel { get => _selectedLoggingLevel; set => Set(ref _selectedLoggingLevel, value); }
     public bool OverwriteForeign { get => _overwriteForeign; set => Set(ref _overwriteForeign, value); }
@@ -285,6 +349,8 @@ public sealed class MainViewModel : ObservableObject
     {
         Enabled = _enabled ? 1 : 0,
         Optimized = _selectedOptimized,
+        Preset = _selectedPreset,
+        Engine = _selectedEngine,
         MaxGeneratedFrames = _selectedMaxFrames,
         LoggingLevel = _selectedLoggingLevel,
     };
@@ -328,6 +394,8 @@ public sealed class MainViewModel : ObservableObject
         {
             if (settings.Enabled != null) Enabled = settings.Enabled == 1;
             if (settings.Optimized != null) SelectedOptimized = Math.Clamp(settings.Optimized.Value, 0, 3);
+            if (settings.Preset != null) SelectedPreset = settings.Preset.Value;
+            if (settings.Engine != null) SelectedEngine = settings.Engine.Value;
             if (settings.MaxGeneratedFrames != null) SelectedMaxFrames = settings.MaxGeneratedFrames.Value;
             if (settings.LoggingLevel != null) SelectedLoggingLevel = settings.LoggingLevel.Value;
         }
@@ -338,6 +406,9 @@ public sealed class MainViewModel : ObservableObject
 
     private void RebuildMaxFrames(int ceiling)
     {
+        // The XeSS-FG engine only does 2X, so the ceiling the mod accepts for it is 1.
+        if (_selectedEngine == FrameGenEngine.XeSS) ceiling = Math.Min(ceiling, 1);
+
         MaxFrames.Clear();
         for (int frames = 0; frames <= ceiling; frames++)
             MaxFrames.Add(frames);

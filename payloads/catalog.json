@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "versions": [
     {
-      "version": "0.3.5",
-      "displayName": "0.3.5 · 310.9 (up to 6X)",
+      "version": "0.4.0",
+      "displayName": "0.4.0 · runtime 310.9.16 (up to 6X)",
       "sourceRoot": "external/dlssg_for_sm86",
       "maxGeneratedFrames": 5,
       "templates": {
@@ -33,108 +33,102 @@
         {
           "file": "version.dll",
           "source": "version.dll",
-          "sha256": "c3934a09399f022504227c72df0bf8c0de55f9a08880dddde898c5262cefa838",
+          "sha256": "7b3f90435be4f94348bf8d128c84871c7f904c704f7690601a263277c327a7b2",
           "recommended": true,
           "note": "Default entry point"
         },
         {
           "file": "winmm.dll",
           "source": "alternatives/winmm.dll",
-          "sha256": "bc3cef25c1ccbbdccdd93db9fae845104bb6c71fd433240e26641881a7e46658",
-          "note": "Alternate entry point"
+          "sha256": "c86bd90c0fbaf3db0b5cc17c5bbece40eb34a6a3327fe2c0dd8ab455ba985203",
+          "note": "Alternate entry point; try this first when the game ignores version.dll"
         },
         {
           "file": "dbghelp.dll",
           "source": "alternatives/dbghelp.dll",
-          "sha256": "dfe7f44baa68d237dfe040d4b4cfc9bd44b01e661f3051996db1144e6bb388cb",
+          "sha256": "33653ddcb57872e275548c4d39c29a3f47c39b1637eea08d62b55953826e839f",
           "note": "Alternate entry point"
         },
         {
           "file": "dinput8.dll",
           "source": "alternatives/dinput8.dll",
-          "sha256": "4fbad08bb9360a1cd1309a82586353484fe64b7220199344ab83fae308176c6b",
+          "sha256": "19f2e77303c11b40e773eed6b90e17df54997b57472127438f9fedd7a5ddc677",
           "note": "Alternate entry point"
         },
         {
           "file": "dxgi.dll",
           "source": "alternatives/dxgi.dll",
-          "sha256": "52e67020a725c74d5dee62aee4dc166a2f4e5c3adabf04ecab3005ab968fc24d",
-          "note": "Render-path proxy; can conflict with ReShade"
+          "sha256": "2048988dd9cad19e9f25610538edf530b35b036c6701378cf663d7ddf251f5ed",
+          "note": "Render-path proxy, last resort; can conflict with ReShade"
         },
         {
           "file": "d3d12.dll",
           "source": "alternatives/d3d12.dll",
-          "sha256": "64b7ecc3f6d70011feed8dfaa20ce500522e8b04170142e2a2000146b4d7ac71",
-          "note": "Render-path proxy; use instead of dxgi.dll, never both"
+          "sha256": "c4b6f6320a8ad465334514161911941f769d541f8e8d5186171fbe0027ea1ddc",
+          "note": "Render-path proxy, last resort; use instead of dxgi.dll, never both"
+        }
+      ],
+      "directoryAssets": [
+        {
+          "path": "dlssg_sm86/backend/sm86_backend.dll",
+          "source": "dlssg_sm86/backend/sm86_backend.dll",
+          "sha256": "30ffc6e09a347ccde87ecc6fa54fd7818f5ed8a9353f5c31c2a90835c7f0ca9b",
+          "bytes": 2109728,
+          "note": "SM86/SM75 frame-generation backend"
+        },
+        {
+          "path": "dlssg_sm86/kernels/fg_kernels.dll",
+          "source": "dlssg_sm86/kernels/fg_kernels.dll",
+          "sha256": "1394c2d5d9cc8938ba3e52b043048d20d6d4c13a019c161b11a3dfd16343ec24",
+          "bytes": 18318624,
+          "note": "Optimized DLSS-G kernel pack"
+        },
+        {
+          "path": "dlssg_sm86/runtime/nvngx_dlssg.dll",
+          "source": "dlssg_sm86/runtime/nvngx_dlssg.dll",
+          "sha256": "cadee1aa6db3907babdc3285da2aebc4553d92b89c38ba3eae8abd8bba1bea72",
+          "bytes": 7506544,
+          "note": "Bundled DLSS-G runtime 310.9.16 (NVIDIA)"
+        },
+        {
+          "path": "dlssg_sm86/xefg/xefg_kernels.dll",
+          "source": "dlssg_sm86/xefg/xefg_kernels.dll",
+          "sha256": "1b354c42596f6fad71dbe6ddd600ad2bf637f906ee6adb3de1b3dad01cd7e3f9",
+          "bytes": 5360928,
+          "note": "XeSS-FG engine kernels; used only with Engine=XeSS"
         }
       ]
     },
     {
-      "version": "0.3.5-310.1",
-      "displayName": "0.3.5 · 310.1 (up to 4X)",
-      "sourceRoot": "external/dlssg_for_sm86/310.1",
-      "maxGeneratedFrames": 3,
-      "templates": {
-        "default": "templates/sm86-default.ini"
-      },
+      "version": "0.3.5",
+      "displayName": "0.3.5 · 310.9 (archive only)",
+      "sourceRoot": "external/dlssg_for_sm86/archive/0.3.5",
+      "installable": false,
+      "templates": {},
+      "entryPoints": [],
       "legacySha256": [
-        "a1f5e4c8c43238de5b639ef858fb67fbb1874e5e8681833bc3ffff4d3b573c50",
-        "f20bff1fa5f9a9dc6b7a35ce16fc8c743a7a34a1a47c116283b682f2260b6107",
-        "d17643ae2aed871a646f92ff6613e0604dedab2dc4ec8c8f7f2294f1ec9f7013",
-        "1893acb44f84185a21a5a92b6349a2227e39cefb6a901bae1025174b5c60261a",
-        "ecc28978ff578489ea88fbd9f1c18b566f8b5d5574003e947dfbfa66e177544c",
-        "05a83f28c942148e75d11897cc9ea9f1f3a90613a3e0aac2eea0118a016fcc54",
-        "4646fe15a21c01d251865253f55cefd5892dd2e561ece0c8efa49ae78b5de32e",
-        "dde7ec668130b09f807338c4c594609a75349860bb5ca4428797f6ab2175b9c1",
-        "1537a207f6490f49373ac8164e2021e6f25bd212e4abc8564dfd8110ad3afe28",
-        "e87a61ef84f60b58e5f3b841006992a30d8fd2998096f065b317e7126ebccd9b",
-        "f8d823609f994861d27abf50c9cb78386202650f8da1c868eaa2a40f13feef70",
-        "337ed97b9303192915e6edcac0310dca8817f72baa414dffa83d238cdb2ca724",
-        "ca4146f76d4b176d17246d8c0e66042c57f7b25dcabea3200b33821522597211",
-        "2312e761ee589204ddf4d402c1ae36367aa73d9bcd9fdfd9bbe56c06604a63e6",
-        "c4679d28f69e5c99aec290725ef930a2fc58c657514f65f650efdbb0a308143c",
-        "94767cc139f8ecb6373765cd102cc85a28601cd55101f53ae854e61a4cbf4868",
-        "7dec971ff126f427b855d1238ff2b2ecb6ab7616c467776f882e7a4e244cc5b5",
-        "77860075059a630a90327e417cae7db6067ff56878ddb429d5d741c813dd4995"
-      ],
-      "entryPoints": [
-        {
-          "file": "version.dll",
-          "source": "version.dll",
-          "sha256": "4ba7fecc68e2229193757839f326176a4f0f4325baab3c324007e0ea844e4d17",
-          "recommended": true,
-          "note": "Default entry point"
-        },
-        {
-          "file": "winmm.dll",
-          "source": "alternatives/winmm.dll",
-          "sha256": "a62e669d2ceae7645cbafe98d1df69892ede07bf78166acf2185a8beb9843a85",
-          "note": "Alternate entry point"
-        },
-        {
-          "file": "dbghelp.dll",
-          "source": "alternatives/dbghelp.dll",
-          "sha256": "fc58ee19b315732821ea3216d4d360972c38ce076ebc7d730b3f601c0e5c4a2c",
-          "note": "Alternate entry point"
-        },
-        {
-          "file": "dinput8.dll",
-          "source": "alternatives/dinput8.dll",
-          "sha256": "ed56447cefa8b5836ec39116db620c289cac783fba938a9740c7a1b845a6ffaa",
-          "note": "Alternate entry point"
-        },
-        {
-          "file": "dxgi.dll",
-          "source": "alternatives/dxgi.dll",
-          "sha256": "682e9a1318c5e2cb4ccf490c6cabfa2f119bf2f4793ced9c68ea56f3a21dc288",
-          "note": "Render-path proxy; can conflict with ReShade"
-        },
-        {
-          "file": "d3d12.dll",
-          "source": "alternatives/d3d12.dll",
-          "sha256": "1b6c39e4e2aa34e216d70d991ecb3d83eb6bdc01fa5e977a2e837f4433f77f2b",
-          "note": "Render-path proxy; use instead of dxgi.dll, never both"
-        }
+        "c3934a09399f022504227c72df0bf8c0de55f9a08880dddde898c5262cefa838",
+        "bc3cef25c1ccbbdccdd93db9fae845104bb6c71fd433240e26641881a7e46658",
+        "dfe7f44baa68d237dfe040d4b4cfc9bd44b01e661f3051996db1144e6bb388cb",
+        "4fbad08bb9360a1cd1309a82586353484fe64b7220199344ab83fae308176c6b",
+        "52e67020a725c74d5dee62aee4dc166a2f4e5c3adabf04ecab3005ab968fc24d",
+        "64b7ecc3f6d70011feed8dfaa20ce500522e8b04170142e2a2000146b4d7ac71"
+      ]
+    },
+    {
+      "version": "0.3.5-310.1",
+      "displayName": "0.3.5 · 310.1 (archive only)",
+      "sourceRoot": "external/dlssg_for_sm86/archive/0.3.5/310.1",
+      "installable": false,
+      "templates": {},
+      "entryPoints": [],
+      "legacySha256": [
+        "4ba7fecc68e2229193757839f326176a4f0f4325baab3c324007e0ea844e4d17",
+        "a62e669d2ceae7645cbafe98d1df69892ede07bf78166acf2185a8beb9843a85",
+        "fc58ee19b315732821ea3216d4d360972c38ce076ebc7d730b3f601c0e5c4a2c",
+        "ed56447cefa8b5836ec39116db620c289cac783fba938a9740c7a1b845a6ffaa",
+        "682e9a1318c5e2cb4ccf490c6cabfa2f119bf2f4793ced9c68ea56f3a21dc288",
+        "1b6c39e4e2aa34e216d70d991ecb3d83eb6bdc01fa5e977a2e837f4433f77f2b"
       ]
     }
   ]

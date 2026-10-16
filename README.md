@@ -2,20 +2,26 @@
 
 A Windows desktop manager for the
 [dlssg_for_sm86](https://github.com/sdli1995/dlssg_for_sm86) DLSS Frame
-Generation mod: installs the proxy DLL and INI next to a game's rendering EXE,
-swaps versions and entry points, edits the INI, backs up originals, and
-uninstalls cleanly. Built with WinUI 3 / Windows App SDK.
+Generation mod: installs the proxy DLL, the INI and the mod's data folder next
+to a game's rendering EXE, swaps entry points, edits the INI, backs up
+originals, and uninstalls cleanly. Built with WinUI 3 / Windows App SDK.
 
 ## Features
 
 - Installs any proxy (`version.dll`, `winmm.dll`, `dbghelp.dll`, `dinput8.dll`,
-  `dxgi.dll`, `d3d12.dll`) plus `dlssg_sm86.ini`; swapping keeps only one
-  package proxy. `version.dll` is the default.
-- Bundles the 0.3.5 payloads (310.9 up to 6X, 310.1 up to 4X), SHA256-verified.
-- Writes the supported INI keys, preserving comments, clamped to the payload.
-  Factory default is 4X; 6X needs `MaxGeneratedFrames=5` on 310.9.
+  `dxgi.dll`, `d3d12.dll`), `dlssg_sm86.ini` and the payload's `dlssg_sm86\`
+  folder; swapping keeps only one package proxy. `version.dll` is the default.
+- Bundles the 0.4.0 payload (runtime 310.9.16, up to 6X), SHA256-verified. The
+  proxy alone does nothing — the mod loads its runtime, backend and kernel packs
+  from `dlssg_sm86\` — so the tool writes and removes the whole set, and reports
+  a 0.3.x install as needing a reinstall instead of a silent upgrade.
+- Writes the supported INI keys, preserving comments, clamped to the payload:
+  `[General] Enabled`, `[FrameGeneration] Engine` / `MaxGeneratedFrames`,
+  `[DLSSG] Optimized` / `Preset`, `[Logging] Level`. Factory default is 4X; 6X
+  needs `MaxGeneratedFrames=5`, and `Engine=XeSS` stays at 2X.
 - Backs up pre-existing files once per game and restores them on uninstall.
-  Foreign files are only overwritten after confirmation.
+  Foreign files are only overwritten after confirmation, and a `dlssg_sm86`
+  file that no longer matches what was installed is left alone.
 - Manual folder picker and Steam library scanner.
 - Verifies installed hashes and the logs written by the mod.
 - Detects the GPU via `nvidia-smi`: RTX 30 (SM86) and RTX 20 (Turing / SM75)
@@ -46,15 +52,19 @@ dotnet build DlssgSwapper.sln -c Release
 dotnet publish src/DlssgSwapper.App -c Release -r win-x64 -o out
 ```
 
-`payloads/catalog.json` verifies the bundled DLLs against the pinned
-`external/dlssg_for_sm86` submodule; update both together. A proxy from an older
-release is still recognised (`legacySha256`) and can be replaced or uninstalled.
+`payloads/catalog.json` verifies the bundled proxy DLLs and `dlssg_sm86\` files
+against the pinned `external/dlssg_for_sm86` submodule; update both together. A
+proxy from an older release is still recognised (`legacySha256`) and can be
+replaced or uninstalled.
+
+The super-resolution files (`dlssg_sm86\sr\`) ship only in the upstream release
+asset, not in the repository, so `[SuperResolution] Mode=On` is not offered here.
 
 ## Usage
 
 1. Run the tool and let it detect your GPU.
 2. Add a game via **Add…** or **Steam…**.
-3. Pick an entry point (usually `version.dll`) and the INI settings.
+3. Pick an entry point (usually `version.dll`) and the frame-generation settings.
 4. **Install / Swap**. Confirm if the DLL name belongs to another mod.
 5. Enable DLSS frame generation in-game, then use **Verify**.
 6. **Uninstall** restores the originals; **Remove** forgets a game.

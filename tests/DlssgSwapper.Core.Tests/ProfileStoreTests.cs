@@ -17,7 +17,8 @@ public class ProfileStoreTests
             var profile = GameProfile.Create("Black Myth: Wukong",
                 @"D:\Games\BlackMythWukong\b1\Binaries\Win64\b1-Win64-Shipping.exe",
                 GameSource.Manual)
-                with { Settings = new Configuration.FrameGenSettings { Optimized = 2 } };
+                with
+            { Settings = new Configuration.FrameGenSettings { Optimized = 2 } };
             store.Add(profile);
             Assert.Single(store.Profiles);
             store.Save();

@@ -7,81 +7,123 @@ public class PayloadCatalogTests
     private static string PayloadRoot => Path.Combine(AppContext.BaseDirectory, "payloads");
 
     [Fact]
-    public void Load_ReturnsBoth3109And3101Builds()
+    public void Load_ExposesOnlyCurrentLineAsInstallable()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
 
-        Assert.Equal(2, catalog.Versions.Count);
-        var current = catalog.GetVersion("0.3.5");
+        var current = catalog.GetVersion("0.4.0");
         Assert.NotNull(current);
         Assert.Equal(5, current.MaxGeneratedFrames);
         Assert.Equal(6, current.EntryPoints.Count);
         Assert.Equal("version.dll", current.EntryPoints.First(e => e.Recommended).FileName);
-        Assert.Equal(3, catalog.GetVersion("0.3.5-310.1")!.MaxGeneratedFrames);
+        Assert.Equal(4, current.DirectoryAssets.Count);
+        // Version IDs from before the current release resolve to the current line, including the
+        // archive-only labels, which is what a saved profile from 0.3.x carries.
+        Assert.Equal("0.4.0", catalog.GetVersion("0.3.5")!.Version);
+        Assert.Equal("0.4.0", catalog.GetVersion("0.3.5-310.1")!.Version);
         Assert.Null(catalog.GetVersion("0.2.4"));
+
+        // The single installable line is what the UI offers.
+        Assert.Equal(new[] { "0.4.0" }, catalog.InstallableVersions.Select(v => v.Version));
+
+        // The 0.3.x lines stay in the catalog for recognition only.
+        var archive = catalog.Versions.Single(v => v.Version == "0.3.5");
+        Assert.False(archive.Installable);
+        Assert.Empty(archive.EntryPoints);
+        Assert.NotEmpty(archive.LegacySha256);
     }
 
     [Fact]
     public void GetVersion_MapsPreviousReleaseIds()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
+        var current = catalog.GetVersion("0.4.0");
 
-        Assert.Same(catalog.GetVersion("0.3.5"), catalog.GetVersion("0.3.0"));
-        Assert.Same(catalog.GetVersion("0.3.5-310.1"), catalog.GetVersion("0.3.0-310.1"));
-        Assert.Same(catalog.GetVersion("0.3.5"), catalog.GetVersion("0.3.1"));
-        Assert.Same(catalog.GetVersion("0.3.5-310.1"), catalog.GetVersion("0.3.1-310.1"));
-        Assert.Same(catalog.GetVersion("0.3.5"), catalog.GetVersion("0.3.2"));
-        Assert.Same(catalog.GetVersion("0.3.5-310.1"), catalog.GetVersion("0.3.2-310.1"));
+        Assert.Same(current, catalog.GetVersion("0.3.0"));
+        Assert.Same(current, catalog.GetVersion("0.3.0-310.1"));
+        Assert.Same(current, catalog.GetVersion("0.3.1"));
+        Assert.Same(current, catalog.GetVersion("0.3.1-310.1"));
+        Assert.Same(current, catalog.GetVersion("0.3.2"));
+        Assert.Same(current, catalog.GetVersion("0.3.2-310.1"));
+        Assert.Same(current, catalog.GetVersion("0.3.5"));
+        Assert.Same(current, catalog.GetVersion("0.3.5-310.1"));
     }
 
     [Fact]
     public void FindLegacyVersionOf_RecognisesPreviousReleaseHashes()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.3.5")!;
+        var archive = catalog.Versions.Single(v => v.Version == "0.3.5");
+        var archive3101 = catalog.Versions.Single(v => v.Version == "0.3.5-310.1");
+        var current = catalog.GetVersion("0.4.0")!;
         Assert.NotEmpty(current.LegacySha256);
 
-        string legacyHash = current.LegacySha256[0];
-        Assert.Same(current, catalog.FindLegacyVersionOf(legacyHash));
-        Assert.Null(catalog.FindBySha256(legacyHash));
+        // A proxy from the archived 0.3.5 release and one from the 0.3.x line both belong to us,
+        // while a 0.4.0 proxy is a real entry point.
+        Assert.Same(archive, catalog.FindLegacyVersionOf(archive.LegacySha256[0]));
+        Assert.Same(archive3101, catalog.FindLegacyVersionOf(archive3101.LegacySha256[0]));
+        Assert.Same(current, catalog.FindLegacyVersionOf(current.LegacySha256[0]));
+        Assert.Null(catalog.FindBySha256(archive.LegacySha256[0]));
     }
 
     [Fact]
-    public void Load_AcceptsInstalledDllHashes()
+    public void Load_AcceptsBundledDllAndAssetHashes()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
 
-        foreach (var version in catalog.Versions)
+        foreach (var version in catalog.InstallableVersions)
+        {
             foreach (var entryPoint in version.EntryPoints)
             {
                 string path = catalog.ResolveBinaryPath(version, entryPoint);
                 Assert.Equal(entryPoint.Sha256, Hashing.Sha256File(path), ignoreCase: true);
             }
+
+            foreach (var asset in version.DirectoryAssets)
+            {
+                string path = catalog.ResolveAssetSourcePath(version, asset);
+                Assert.Equal(asset.Sha256, Hashing.Sha256File(path), ignoreCase: true);
+                Assert.Equal(asset.Bytes, new FileInfo(path).Length);
+            }
+        }
     }
 
     [Fact]
     public void FindBySha256_ResolvesInstalledProxy()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.3.5")!;
+        var current = catalog.GetVersion("0.4.0")!;
         string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(current, current.FindEntryPoint("dbghelp.dll")!));
 
         var entry = catalog.FindBySha256(hash);
         Assert.NotNull(entry);
         Assert.Equal("dbghelp.dll", entry.FileName);
         Assert.Same(current, catalog.FindVersionOf(hash));
+        Assert.Same(current, catalog.FindConsumingVersion(hash)!.Version);
     }
 
     [Fact]
-    public void FindBySha256_DistinguishesTheTwoBudgets()
+    public void FindVersionOfAsset_ResolvesInstalledTreeFiles()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.3.5")!;
-        var legacy = catalog.GetVersion("0.3.5-310.1")!;
+        var current = catalog.GetVersion("0.4.0")!;
+        var asset = current.DirectoryAssets.First(a => a.Path.EndsWith("nvngx_dlssg.dll"));
+        string hash = Hashing.Sha256File(catalog.ResolveAssetSourcePath(current, asset));
 
-        string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(legacy, legacy.FindEntryPoint("version.dll")!));
-        Assert.Same(legacy, catalog.FindVersionOf(hash));
-        Assert.NotSame(current, catalog.FindVersionOf(hash));
+        Assert.Same(current, catalog.FindVersionOfAsset(hash));
+        Assert.Null(catalog.FindVersionOfAsset(new string('0', 64)));
+    }
+
+    [Fact]
+    public void FindBySha256_DistinguishesProxyFromTreeFile()
+    {
+        var catalog = PayloadCatalog.Load(PayloadRoot);
+        var current = catalog.GetVersion("0.4.0")!;
+        var asset = current.DirectoryAssets[0];
+        string hash = Hashing.Sha256File(catalog.ResolveAssetSourcePath(current, asset));
+
+        Assert.Null(catalog.FindBySha256(hash));
+        Assert.Null(catalog.FindVersionOf(hash));
     }
 
     [Fact]
@@ -107,6 +149,47 @@ public class PayloadCatalogTests
                   { "file": "version.dll", "source": "version.dll",
                     "sha256": "a22d2453f25d7df3fdc0d6d683c21f01769a115439d58f1341183a75faaf8c7d",
                     "recommended": true }
+                ]
+              }]
+            }
+            """);
+
+            var ex = Assert.Throws<PayloadValidationException>(() => PayloadCatalog.Load(tempRoot));
+            Assert.Contains("Hash mismatch", ex.Message);
+        }
+        finally
+        {
+            Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_RejectsTamperedDirectoryAsset()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"payload-asset-test-{Guid.NewGuid():N}");
+        try
+        {
+            string bin = Path.Combine(tempRoot, "bin", "0.4.0");
+            Directory.CreateDirectory(Path.Combine(bin, "dlssg_sm86", "runtime"));
+            Directory.CreateDirectory(Path.Combine(tempRoot, "templates"));
+            File.WriteAllText(Path.Combine(bin, "version.dll"), "proxy");
+            File.WriteAllText(Path.Combine(bin, "dlssg_sm86", "runtime", "nvngx_dlssg.dll"), "tampered");
+            File.WriteAllText(Path.Combine(tempRoot, "templates", "sm86-default.ini"), "[General]\nEnabled=1\n");
+            File.WriteAllText(Path.Combine(tempRoot, "catalog.json"), """
+            {
+              "versions": [{
+                "version": "0.4.0",
+                "displayName": "0.4.0",
+                "sourceRoot": "external/dlssg_for_sm86",
+                "templates": { "default": "templates/sm86-default.ini" },
+                "entryPoints": [
+                  { "file": "version.dll", "source": "version.dll",
+                    "sha256": "a22d2453f25d7df3fdc0d6d683c21f01769a115439d58f1341183a75faaf8c7d",
+                    "recommended": true }
+                ],
+                "directoryAssets": [
+                  { "path": "dlssg_sm86/runtime/nvngx_dlssg.dll",
+                    "source": "dlssg_sm86/runtime/nvngx_dlssg.dll", "sha256": "00", "bytes": 8 }
                 ]
               }]
             }

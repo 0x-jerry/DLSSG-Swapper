@@ -90,15 +90,22 @@ public class IniApplierTests
         {
             Enabled = 0,
             Optimized = 0,
+            Preset = FrameGenPreset.C,
+            Engine = FrameGenEngine.XeSS,
             MaxGeneratedFrames = 2,
             LoggingLevel = 0,
         });
 
         string rendered = ini.Render();
         Assert.Contains("Enabled=0", rendered);
-        Assert.Contains("Optimized=0", rendered);
         Assert.Contains("MaxGeneratedFrames=2", rendered);
         Assert.Contains("Level=0", rendered);
+
+        // 0.4.0 moved the DLSS-only keys into [DLSSG].
+        Assert.Equal("0", ini.Get("DLSSG", "Optimized"));
+        Assert.Equal("C", ini.Get("DLSSG", "Preset"));
+        Assert.Equal("XeSS", ini.Get("FrameGeneration", "Engine"));
+        Assert.Null(ini.Get("FrameGeneration", "Optimized"));
     }
 
     [Fact]
@@ -109,8 +116,9 @@ public class IniApplierTests
 
         string rendered = ini.Render();
         Assert.Contains("Mode=Bundled", rendered);
-        Assert.Contains("CacheDirectory=", rendered);
         Assert.Contains("Directory=dlssg_sm86\\logs", rendered);
+        Assert.Equal("Middle", ini.Get("XeSSFG", "FlowResolution"));
+        Assert.Equal("1", ini.Get("XeSSFG", "UseHudless"));
     }
 
     [Theory]
@@ -135,7 +143,7 @@ public class IniApplierTests
         var ini = IniFile.Load(Template());
         IniApplier.Apply(ini, FrameGenSettings.Defaults() with { Optimized = tier });
 
-        Assert.Contains($"Optimized={tier}", ini.Render());
+        Assert.Equal(tier.ToString(), ini.Get("DLSSG", "Optimized"));
     }
 
     [Theory]
@@ -150,13 +158,41 @@ public class IniApplierTests
         Assert.Contains("Optimized", ex.Message);
     }
 
+    [Theory]
+    [InlineData(FrameGenPreset.Auto, "Auto")]
+    [InlineData(FrameGenPreset.A, "A")]
+    [InlineData(FrameGenPreset.B, "B")]
+    [InlineData(FrameGenPreset.C, "C")]
+    public void Preset_IsWrittenToTheDlssgSection(FrameGenPreset preset, string expected)
+    {
+        var ini = IniFile.Load(Template());
+        IniApplier.Apply(ini, FrameGenSettings.Defaults() with { Preset = preset });
+
+        Assert.Equal(expected, ini.Get("DLSSG", "Preset"));
+    }
+
     [Fact]
     public void Defaults_MatchTheFactoryIni()
     {
         var settings = FrameGenSettings.Defaults();
         Assert.Equal(1, settings.Enabled);
-        Assert.Equal(1, settings.Optimized);
+        Assert.Equal(2, settings.Optimized); // 0.4.0 factory default
+        Assert.Equal(FrameGenPreset.Auto, settings.Preset);
+        Assert.Equal(FrameGenEngine.Dlss, settings.Engine);
         Assert.Equal(3, settings.MaxGeneratedFrames);
         Assert.Equal(1, settings.LoggingLevel);
+    }
+
+    [Fact]
+    public void FactoryTemplateDefaults_MatchTheApplierDefaults()
+    {
+        var template = IniFile.Load(Template());
+
+        Assert.Equal("1", template.Get("General", "Enabled"));
+        Assert.Equal("DLSS", template.Get("FrameGeneration", "Engine"));
+        Assert.Equal("2", template.Get("DLSSG", "Optimized"));
+        Assert.Equal("Auto", template.Get("DLSSG", "Preset"));
+        Assert.Equal("3", template.Get("FrameGeneration", "MaxGeneratedFrames"));
+        Assert.Equal("1", template.Get("Logging", "Level"));
     }
 }

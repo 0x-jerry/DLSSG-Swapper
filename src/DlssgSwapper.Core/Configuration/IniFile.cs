@@ -102,7 +102,10 @@ public sealed class IniFile
                     break;
             }
         }
-        return string.Join(Environment.NewLine, parts);
+        // Always LF: the shipped templates use LF (see .gitattributes), the parser accepts both,
+        // and the mod reads either. Keeping the writer platform-independent means an installed INI
+        // is byte-identical to its template, which is what uninstall compares against.
+        return string.Join('\n', parts);
     }
 
     public void Save(string path) => File.WriteAllText(path, Render());
