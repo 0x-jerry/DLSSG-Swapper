@@ -8,7 +8,13 @@ public sealed class ProfileStore
     {
         PropertyNameCaseInsensitive = true,
         WriteIndented = true,
-        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+        Converters =
+        {
+            // Before the general enum converter: it claims every enum type, and 0.4.1 dropped
+            // [DLSSG] Preset=Auto while profiles written before that still carry it.
+            new DlssgSwapper.Core.Configuration.FrameGenPresetConverter(),
+            new System.Text.Json.Serialization.JsonStringEnumConverter(),
+        },
     };
 
     private readonly string _path;

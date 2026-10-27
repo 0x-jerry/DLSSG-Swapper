@@ -36,6 +36,35 @@ public class ProfileStoreTests
     }
 
     [Fact]
+    public void Load_MapsTheRemovedAutoPresetToA()
+    {
+        string path = TempStorePath();
+        try
+        {
+            // A profile written by a build that still offered [DLSSG] Preset=Auto; 0.4.1 removed that
+            // value, and the mod itself runs it as A.
+            File.WriteAllText(path, """
+            [{
+              "Id": "6f9619ff-8b86-d011-b42d-00cf4fc964ff",
+              "Name": "Old Game",
+              "ExecutablePath": "C:\\Games\\Old\\game.exe",
+              "Source": "Manual",
+              "Settings": { "Preset": "Auto", "Optimized": 2 }
+            }]
+            """);
+
+            var store = new ProfileStore(path);
+            var profile = Assert.Single(store.Profiles);
+            Assert.Equal(Configuration.FrameGenPreset.A, profile.Settings!.Preset);
+            Assert.Equal(2, profile.Settings.Optimized);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Remove_DeletesProfile()
     {
         string path = TempStorePath();

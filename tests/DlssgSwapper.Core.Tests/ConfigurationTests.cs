@@ -101,7 +101,7 @@ public class IniApplierTests
         Assert.Contains("MaxGeneratedFrames=2", rendered);
         Assert.Contains("Level=0", rendered);
 
-        // 0.4.0 moved the DLSS-only keys into [DLSSG].
+        // 0.4.0 moved the DLSS-only keys into [DLSSG]; 0.4.1 keeps them there.
         Assert.Equal("0", ini.Get("DLSSG", "Optimized"));
         Assert.Equal("C", ini.Get("DLSSG", "Preset"));
         Assert.Equal("XeSS", ini.Get("FrameGeneration", "Engine"));
@@ -118,7 +118,10 @@ public class IniApplierTests
         Assert.Contains("Mode=Bundled", rendered);
         Assert.Contains("Directory=dlssg_sm86\\logs", rendered);
         Assert.Equal("Middle", ini.Get("XeSSFG", "FlowResolution"));
-        Assert.Equal("1", ini.Get("XeSSFG", "UseHudless"));
+        // 0.4.1 turned UseHudless into a tri-state key with Auto as the factory value.
+        Assert.Equal("Auto", ini.Get("XeSSFG", "UseHudless"));
+        // The super-resolution section ships in the factory file from 0.4.0 on.
+        Assert.Equal("Off", ini.Get("SuperResolution", "Mode"));
     }
 
     [Theory]
@@ -159,7 +162,6 @@ public class IniApplierTests
     }
 
     [Theory]
-    [InlineData(FrameGenPreset.Auto, "Auto")]
     [InlineData(FrameGenPreset.A, "A")]
     [InlineData(FrameGenPreset.B, "B")]
     [InlineData(FrameGenPreset.C, "C")]
@@ -176,8 +178,8 @@ public class IniApplierTests
     {
         var settings = FrameGenSettings.Defaults();
         Assert.Equal(1, settings.Enabled);
-        Assert.Equal(2, settings.Optimized); // 0.4.0 factory default
-        Assert.Equal(FrameGenPreset.Auto, settings.Preset);
+        Assert.Equal(1, settings.Optimized); // 0.4.1 factory default
+        Assert.Equal(FrameGenPreset.A, settings.Preset);
         Assert.Equal(FrameGenEngine.Dlss, settings.Engine);
         Assert.Equal(3, settings.MaxGeneratedFrames);
         Assert.Equal(1, settings.LoggingLevel);
@@ -190,9 +192,21 @@ public class IniApplierTests
 
         Assert.Equal("1", template.Get("General", "Enabled"));
         Assert.Equal("DLSS", template.Get("FrameGeneration", "Engine"));
-        Assert.Equal("2", template.Get("DLSSG", "Optimized"));
-        Assert.Equal("Auto", template.Get("DLSSG", "Preset"));
+        Assert.Equal("1", template.Get("DLSSG", "Optimized"));
+        Assert.Equal("A", template.Get("DLSSG", "Preset"));
         Assert.Equal("3", template.Get("FrameGeneration", "MaxGeneratedFrames"));
         Assert.Equal("1", template.Get("Logging", "Level"));
+    }
+
+    // The tool only writes what 0.4.1 still reads: a removed value would make the mod refuse the
+    // feature it belongs to (configuration_invalid), not fall back to a default.
+    [Fact]
+    public void Applier_NeverWritesAValueTheModRejects()
+    {
+        var ini = IniFile.Load(Template());
+        IniApplier.Apply(ini, FrameGenSettings.Defaults());
+
+        Assert.DoesNotContain("Auto", ini.Get("DLSSG", "Preset"));
+        Assert.DoesNotContain("On", ini.Get("SuperResolution", "Mode"));
     }
 }

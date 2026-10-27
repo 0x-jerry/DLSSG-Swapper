@@ -8,14 +8,31 @@ public enum FrameGenEngine
     XeSS,
 }
 
-// [DLSSG] Preset. Auto leaves the choice to the game / driver profile; C is the "FG Lite" preset from
-// the 0.4.0 payload (much cheaper per generated frame, slightly lower image quality).
+// [DLSSG] Preset. 0.4.1 removed "Auto" (it runs as A and logs one configuration_warning), so the
+// tool only ever writes A, B or C. C is the "FG Lite" preset: much cheaper per generated frame,
+// slightly lower image quality.
 public enum FrameGenPreset
 {
-    Auto,
     A,
     B,
     C,
+}
+
+// A profile saved by an older build may hold "Auto", which is no longer a member: map it to A (what
+// the mod itself does with that value) instead of failing to load the whole profile.
+public sealed class FrameGenPresetConverter : System.Text.Json.Serialization.JsonConverter<FrameGenPreset>
+{
+    public override FrameGenPreset Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert,
+        System.Text.Json.JsonSerializerOptions options)
+    {
+        string? value = reader.GetString();
+        if (Enum.TryParse(value, ignoreCase: true, out FrameGenPreset preset)) return preset;
+        return FrameGenPreset.A;
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, FrameGenPreset value,
+        System.Text.Json.JsonSerializerOptions options) =>
+        writer.WriteStringValue(value.ToString());
 }
 
 public sealed record FrameGenSettings
@@ -30,8 +47,8 @@ public sealed record FrameGenSettings
     public static FrameGenSettings Defaults() => new()
     {
         Enabled = 1,
-        Optimized = 2,
-        Preset = FrameGenPreset.Auto,
+        Optimized = 1,
+        Preset = FrameGenPreset.A,
         Engine = FrameGenEngine.Dlss,
         MaxGeneratedFrames = 3,
         LoggingLevel = 1,
@@ -50,8 +67,8 @@ public static class IniApplier
         ini.Set("FrameGeneration", "Engine",
             FrameGenSettings.EngineValue(settings.Engine ?? FrameGenEngine.Dlss));
         Set(ini, "FrameGeneration", "MaxGeneratedFrames", settings.MaxGeneratedFrames, MaxFrames, 3);
-        Set(ini, "DLSSG", "Optimized", settings.Optimized, Tier, 2);
-        string preset = (settings.Preset ?? FrameGenPreset.Auto).ToString();
+        Set(ini, "DLSSG", "Optimized", settings.Optimized, Tier, 1);
+        string preset = (settings.Preset ?? FrameGenPreset.A).ToString();
         if (!PresetValue(preset))
             throw new ArgumentException($"Invalid value \"{preset}\" for DLSSG.Preset");
         ini.Set("DLSSG", "Preset", preset);

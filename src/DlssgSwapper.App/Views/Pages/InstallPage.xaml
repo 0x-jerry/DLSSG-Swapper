@@ -150,7 +150,7 @@
                                         <ComboBox ItemsSource="{Binding OptimizedTiers}"
                                                   SelectedItem="{Binding SelectedOptimized, Mode=TwoWay}"
                                                   HorizontalAlignment="Stretch" />
-                                        <TextBlock Text="Kernel consistency tier: 0 = stock, 1 = bit-identical, 2 = near-lossless (factory default), 3 = fastest."
+                                        <TextBlock Text="Kernel consistency tier: 0 = stock, 1 = bit-identical (factory default), 2 = near-lossless, 3 = fastest."
                                                    Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
 
@@ -169,7 +169,7 @@
                                     <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,10">
                                         <ComboBox ItemsSource="{Binding MaxFrames}"
                                                   SelectedItem="{Binding SelectedMaxFrames, Mode=TwoWay}" HorizontalAlignment="Stretch" />
-                                        <TextBlock Text="0 = runtime default; 1 = 2X, 3 = 4X, 5 = 6X. The bundled runtime 310.9.16 supports 6X; Engine=XeSS stays at 2X."
+                                        <TextBlock Text="0 = runtime default; 1 = 2X, 3 = 4X, 5 = 6X. The bundled runtime 310.9.16 supports 6X; Engine=XeSS stops at 3 (4X)."
                                                    Style="{StaticResource CaptionText}" Margin="2,3,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
 

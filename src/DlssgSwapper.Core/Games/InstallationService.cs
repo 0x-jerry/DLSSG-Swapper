@@ -110,7 +110,9 @@ public sealed class InstallationService
             if (_catalog.FindLegacyVersionOf(hash) != null)
             {
                 foundLegacy ??= new PayloadEntryPoint(name, name, hash, false, "Previous release");
-                warnings.Add($"{name} is from an earlier payload release (0.3.x layout); reinstall to update it.");
+                // The hash names the line that supersedes it, not the release that wrote it, so the
+                // message stays unspecific about which build it came from.
+                warnings.Add($"{name} is from an earlier payload release; reinstall to update it.");
                 continue;
             }
 
@@ -135,16 +137,19 @@ public sealed class InstallationService
         var current = _catalog.InstallableVersions.FirstOrDefault();
         var assets = InspectAssets(gameDir, current, warnings);
         bool ours = foundOurs != null || foundLegacy != null;
-        // A 0.3.x install has a proxy and an INI but no dlssg_sm86\ tree, and 0.4.0 cannot run
-        // without that tree, so it is an upgrade that has to be redone.
-        bool outdatedLayout = ours && assets.Present == 0 && current is { DirectoryAssets.Count: > 0 };
+        // A 0.3.x install has a proxy and an INI but no dlssg_sm86\ tree, and no release since 0.4.0
+        // can run without that tree, so it is an upgrade that has to be redone.
+        bool outdatedLayout = ours && !assets.AnyFilePresent && current is { DirectoryAssets.Count: > 0 };
         if (outdatedLayout)
-            warnings.Add("Installed with the 0.3.x layout; 0.4.0 also needs the dlssg_sm86 folder. Reinstall to update.");
+            warnings.Add("Installed with the 0.3.x layout; the current payload also needs the dlssg_sm86 folder. Reinstall to update.");
+        else if (assets.Stale > 0)
+            warnings.Add($"dlssg_sm86 holds {assets.Stale} file(s) from an earlier payload release; reinstall to update them.");
         else if (assets.Present > 0 && assets.Present < current?.DirectoryAssets.Count)
             warnings.Add($"dlssg_sm86 is incomplete ({assets.Present} of {current!.DirectoryAssets.Count} files); reinstall to repair it.");
 
         var origin = ours ? FileOrigin.Ours : foreignPresent ? FileOrigin.Foreign : FileOrigin.Absent;
-        bool complete = !outdatedLayout && foundOurs != null && iniPresent && assets.Complete;
+        bool complete = !outdatedLayout && foundOurs != null && iniPresent && assets.Complete
+                        && assets.Stale == 0;
         var kind = (ours, iniPresent, complete) switch
         {
             (true, true, true) => InstallKind.Installed,
@@ -171,15 +176,16 @@ public sealed class InstallationService
     }
 
     // Outcome of looking at the payload's dlssg_sm86\ tree in the game folder.
-    private readonly record struct AssetInspection(int Present, bool AnyFilePresent, bool Complete);
+    private readonly record struct AssetInspection(int Present, int Stale, bool AnyFilePresent, bool Complete);
 
     // Counts the payload's directory files that are present and byte-identical. A file with a
     // different hash is reported but never claimed, and unrelated files are ignored.
     private AssetInspection InspectAssets(string gameDir, PayloadVersion? version, List<string> warnings)
     {
-        if (version == null || version.DirectoryAssets.Count == 0) return new AssetInspection(0, false, true);
+        if (version == null || version.DirectoryAssets.Count == 0) return new AssetInspection(0, 0, false, true);
 
         int present = 0;
+        int stale = 0;
         bool anyFilePresent = false;
         foreach (var asset in version.DirectoryAssets)
         {
@@ -206,14 +212,14 @@ public sealed class InstallationService
 
             if (_catalog.FindVersionOfAsset(hash) != null)
             {
-                warnings.Add($"{asset.Path} is from another payload version; reinstall to update it.");
+                stale++;
                 continue;
             }
 
             warnings.Add($"{asset.Path} does not match this payload; it will never be touched.");
         }
 
-        return new AssetInspection(present, anyFilePresent, present == version.DirectoryAssets.Count);
+        return new AssetInspection(present, stale, anyFilePresent, present == version.DirectoryAssets.Count);
     }
 
     public IReadOnlyList<string> Install(GameProfile profile, PayloadVersion version,
@@ -237,7 +243,10 @@ public sealed class InstallationService
         // Never treat a proxy we installed (current or previous release) as the game's original.
         if (!File.Exists(target) || !IsOursOrLegacy(target))
             store.BackupOriginal(gameDir, entryPoint.FileName);
-        store.BackupOriginal(gameDir, IniFileName);
+        // Same for the INI: an upgrade must not record the previous release's INI - ours - as the
+        // file to restore on uninstall, or uninstalling would leave a mod INI behind.
+        if (!IsOurIni(Path.Combine(gameDir, IniFileName), store.Install))
+            store.BackupOriginal(gameDir, IniFileName);
 
         RemoveOtherOwnedProxies(gameDir, entryPoint.FileName, warnings);
 
@@ -257,7 +266,7 @@ public sealed class InstallationService
 
         var installed = new List<InstalledFileRecord>();
         foreach (var asset in version.DirectoryAssets)
-            installed.Add(InstallAsset(gameDir, version, asset));
+            installed.Add(InstallAsset(gameDir, version, asset, overwriteForeignFile, warnings));
 
         if (!string.Equals(Hashing.Sha256File(target), entryPoint.Sha256, StringComparison.OrdinalIgnoreCase))
             throw new InstallVerificationException($"Installed {entryPoint.FileName} failed hash verification.");
@@ -276,7 +285,8 @@ public sealed class InstallationService
         return warnings;
     }
 
-    private InstalledFileRecord InstallAsset(string gameDir, PayloadVersion version, PayloadDirectoryAsset asset)
+    private InstalledFileRecord InstallAsset(string gameDir, PayloadVersion version, PayloadDirectoryAsset asset,
+        bool overwriteForeignFile, List<string> warnings)
     {
         string relative = ToLocalPath(asset.Path);
         string source = _catalog.ResolveAssetSourcePath(version, asset);
@@ -284,6 +294,23 @@ public sealed class InstallationService
 
         string? directory = Path.GetDirectoryName(destination);
         if (directory != null) Directory.CreateDirectory(directory);
+
+        // A file already at this path is replaced when it is ours - the current release's, or one an
+        // earlier release left behind, which is exactly what an upgrade does. Anything else belongs
+        // to the game or another mod and is only overwritten on request, like a foreign proxy.
+        if (File.Exists(destination))
+        {
+            string? existing = TryHash(destination);
+            bool ours = existing != null
+                        && (_catalog.FindVersionOfAsset(existing) != null
+                            || string.Equals(existing, asset.Sha256, StringComparison.OrdinalIgnoreCase));
+            if (!ours)
+            {
+                if (!overwriteForeignFile)
+                    throw new ForeignFileException(asset.Path);
+                warnings.Add($"Overwriting foreign {asset.Path} after confirmation; it cannot be backed up.");
+            }
+        }
 
         File.Copy(source, destination, overwrite: true);
 
@@ -321,8 +348,9 @@ public sealed class InstallationService
         string iniPath = Path.Combine(gameDir, IniFileName);
         if (File.Exists(iniPath))
         {
-            // A superseded 0.3.x INI is removed rather than restored over: it cannot configure 0.4.0
-            // anyway, and restoring the game's original would leave the folder in the 0.3.x state.
+            // A superseded 0.3.x INI is removed rather than restored over: it cannot configure the
+            // current payload anyway, and restoring the game's original would leave the folder in
+            // the 0.3.x state.
             bool superseded = LooksLikeSupersededIni(iniPath);
             if (superseded || IsCurrentIni(iniPath, record?.IniSha256))
             {
@@ -343,6 +371,16 @@ public sealed class InstallationService
         return warnings;
     }
 
+    // The INI is one this tool wrote: the untouched template, a superseded 0.3.x one it used to
+    // write, or the file its own install record names (which is how a modified install is
+    // recognised across releases).
+    private bool IsOurIni(string iniPath, InstallRecord? record)
+    {
+        if (!File.Exists(iniPath)) return false;
+        if (LooksLikeSupersededIni(iniPath)) return true;
+        return IsCurrentIni(iniPath, record?.IniSha256);
+    }
+
     // The INI still holds what this install wrote (recorded hash) or the untouched factory content
     // of the bundled template.
     public bool IsCurrentIni(string iniPath, string? recordedSha256)
@@ -361,8 +399,8 @@ public sealed class InstallationService
     }
 
     // A 0.3.x INI: keys this tool used to write that 0.4.0 moved into other sections, and no
-    // [DLSSG] / [XeSSFG] section. Such a file cannot configure 0.4.0 correctly anyway, so an
-    // uninstall or upgrade removes it rather than restoring the game's original over it.
+    // [DLSSG] / [XeSSFG] section. Such a file cannot configure the current payload correctly
+    // anyway, so an uninstall or upgrade removes it rather than restoring the original over it.
     public static bool LooksLikeSupersededIni(string iniPath)
     {
         try
@@ -453,15 +491,21 @@ public sealed class InstallationService
 
     public bool IsOurs(string path) => IsOursOrLegacy(path);
 
-    // The payload's ceiling is the main limit; the XeSS-FG engine additionally only does 2X, so a
-    // 6X request under Engine=XeSS would otherwise be written as a value the mod silently ignores.
+    // The payload's ceiling is the main limit; the XeSS-FG engine has its own, lower one (2X in
+    // 0.4.0, 2X-4X in 0.4.1), and a value above it makes the mod refuse frame generation
+    // (max_generated_frames_unsupported) rather than run at a lower count.
     public static FrameGenSettings ClampToRuntime(FrameGenSettings settings, PayloadVersion version)
     {
-        int ceiling = version.MaxGeneratedFrames;
-        if (settings.Engine == FrameGenEngine.XeSS) ceiling = Math.Min(ceiling, 1);
+        int ceiling = CeilingFor(settings, version);
         if (settings.MaxGeneratedFrames is not int frames || frames <= ceiling) return settings;
         return settings with { MaxGeneratedFrames = ceiling };
     }
+
+    // The highest MaxGeneratedFrames the given payload line accepts for this engine.
+    public static int CeilingFor(FrameGenSettings settings, PayloadVersion version) =>
+        settings.Engine == FrameGenEngine.XeSS
+            ? Math.Min(version.MaxGeneratedFrames, version.XeSSMaxGeneratedFrames)
+            : version.MaxGeneratedFrames;
 
     // Ours, including a proxy left by an earlier payload release (matched by legacy hash).
     private bool IsOursOrLegacy(string path)

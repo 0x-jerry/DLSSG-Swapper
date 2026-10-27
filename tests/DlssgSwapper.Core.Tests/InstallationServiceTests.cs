@@ -30,7 +30,7 @@ public class InstallationServiceTests : IDisposable
         if (Directory.Exists(_backupRoot)) Directory.Delete(_backupRoot, recursive: true);
     }
 
-    private PayloadVersion Current => _catalog.GetVersion("0.4.0")!;
+    private PayloadVersion Current => _catalog.GetVersion(PayloadCatalog.CurrentVersionId)!;
     private string InstalledIni => Path.Combine(_gameDir, InstallationService.IniFileName);
     private string AssetFile(string relative) =>
         Path.Combine(_gameDir, relative.Replace('/', Path.DirectorySeparatorChar));
@@ -48,8 +48,8 @@ public class InstallationServiceTests : IDisposable
 
         var ini = IniFile.Load(InstalledIni);
         Assert.Equal("1", ini.Get("General", "Enabled"));
-        Assert.Equal("2", ini.Get("DLSSG", "Optimized"));
-        Assert.Equal("Auto", ini.Get("DLSSG", "Preset"));
+        Assert.Equal("1", ini.Get("DLSSG", "Optimized"));
+        Assert.Equal("A", ini.Get("DLSSG", "Preset"));
         Assert.Equal("DLSS", ini.Get("FrameGeneration", "Engine"));
         Assert.Equal("3", ini.Get("FrameGeneration", "MaxGeneratedFrames"));
         Assert.Equal("1", ini.Get("Logging", "Level"));
@@ -84,12 +84,18 @@ public class InstallationServiceTests : IDisposable
 
         Assert.Equal(3, InstallationService.ClampToRuntime(Defaults with { MaxGeneratedFrames = 5 }, limited)
             .MaxGeneratedFrames);
-        // The bundled 0.4.0 runtime keeps a 6X request.
+        // The bundled 310.9.16 runtime keeps a 6X request.
         Assert.Equal(5, InstallationService.ClampToRuntime(Defaults with { MaxGeneratedFrames = 5 }, Current)
             .MaxGeneratedFrames);
-        // XeSS-FG is 2X only, whatever the runtime allows.
-        Assert.Equal(1, InstallationService.ClampToRuntime(
+        // XeSS-FG does 2X-4X in 0.4.1, so 4X is kept and 6X is clamped to it.
+        Assert.Equal(3, InstallationService.ClampToRuntime(
             Defaults with { MaxGeneratedFrames = 5, Engine = FrameGenEngine.XeSS }, Current).MaxGeneratedFrames);
+        Assert.Equal(2, InstallationService.ClampToRuntime(
+            Defaults with { MaxGeneratedFrames = 2, Engine = FrameGenEngine.XeSS }, Current).MaxGeneratedFrames);
+        // A 0.4.0 line kept the XeSS engine at 2X; the ceiling travels with the catalog line.
+        var oldXeSS = Current with { XeSSMaxGeneratedFrames = 1 };
+        Assert.Equal(1, InstallationService.ClampToRuntime(
+            Defaults with { MaxGeneratedFrames = 3, Engine = FrameGenEngine.XeSS }, oldXeSS).MaxGeneratedFrames);
     }
 
     [Fact]
@@ -203,6 +209,124 @@ public class InstallationServiceTests : IDisposable
     }
 
     [Fact]
+    public void Inspect_ReportsATreeFromThePreviousRelease()
+    {
+        // A file of the previous release's dlssg_sm86\ tree is ours but stale: it is reported as an
+        // upgrade, not as a stranger's file, and never claimed as the current one.
+        string root = Path.Combine(Path.GetTempPath(), $"stale-asset-catalog-{Guid.NewGuid():N}");
+        string gameDir = Path.Combine(Path.GetTempPath(), $"stale-asset-game-{Guid.NewGuid():N}");
+        string backupRoot = Path.Combine(Path.GetTempPath(), $"stale-asset-backup-{Guid.NewGuid():N}");
+        try
+        {
+            byte[] proxyBytes = { 0x4D, 0x5A, 0x01 };
+            byte[] currentAsset = { 0x4D, 0x5A, 0x02 };
+            byte[] oldAsset = { 0x4D, 0x5A, 0x03 };
+            string binDir = Path.Combine(root, "bin", "0.4.1");
+            Directory.CreateDirectory(Path.Combine(binDir, "dlssg_sm86", "backend"));
+            Directory.CreateDirectory(Path.Combine(root, "templates"));
+            Directory.CreateDirectory(gameDir);
+
+            string proxyPath = Path.Combine(binDir, "version.dll");
+            File.WriteAllBytes(proxyPath, proxyBytes);
+            string assetPath = Path.Combine(binDir, "dlssg_sm86", "backend", "sm86_backend.dll");
+            File.WriteAllBytes(assetPath, currentAsset);
+            string probe = Path.Combine(root, "old.bin");
+            File.WriteAllBytes(probe, oldAsset);
+            string oldHash = Hashing.Sha256File(probe);
+            File.Delete(probe);
+
+            File.WriteAllText(Path.Combine(root, "templates", "sm86-default.ini"),
+                "[General]\nEnabled=1\n[DLSSG]\nOptimized=1\nPreset=A\n");
+            File.WriteAllText(Path.Combine(root, "catalog.json"), $$"""
+            {
+              "versions": [{
+                "version": "0.4.1",
+                "displayName": "0.4.1",
+                "sourceRoot": "external/dlssg_for_sm86",
+                "maxGeneratedFrames": 5,
+                "xessMaxGeneratedFrames": 3,
+                "templates": { "default": "templates/sm86-default.ini" },
+                "legacyAssetSha256": ["{{oldHash}}"],
+                "entryPoints": [
+                  { "file": "version.dll", "source": "version.dll",
+                    "sha256": "{{Hashing.Sha256File(proxyPath)}}", "recommended": true }
+                ],
+                "directoryAssets": [
+                  { "path": "dlssg_sm86/backend/sm86_backend.dll",
+                    "source": "dlssg_sm86/backend/sm86_backend.dll",
+                    "sha256": "{{Hashing.Sha256File(assetPath)}}", "bytes": {{currentAsset.Length}} }
+                ]
+              }]
+            }
+            """);
+
+            var catalog = PayloadCatalog.Load(root);
+            var service = new InstallationService(catalog, _ => new BackupStore(backupRoot));
+            string exe = Path.Combine(gameDir, "FakeGame.exe");
+            File.WriteAllBytes(exe, new byte[] { 0x4D, 0x5A });
+            var profile = GameProfile.Create("Stale Game", exe, GameSource.Manual);
+
+            Directory.CreateDirectory(Path.Combine(gameDir, "dlssg_sm86", "backend"));
+            File.WriteAllBytes(Path.Combine(gameDir, "version.dll"), proxyBytes);
+            File.WriteAllBytes(Path.Combine(gameDir, "dlssg_sm86", "backend", "sm86_backend.dll"), oldAsset);
+
+            var inspection = service.Inspect(profile);
+
+            Assert.Equal(InstallKind.Partial, inspection.Kind);
+            Assert.Equal(0, inspection.AssetsPresent);
+            Assert.False(inspection.OutdatedLayout);
+            Assert.Contains(inspection.Warnings, w => w.Contains("earlier payload release"));
+
+            // Reinstalling over the previous release replaces its files without asking, because the
+            // catalog recognises them as ours.
+            service.Install(profile, catalog.GetVersion(PayloadCatalog.CurrentVersionId)!,
+                catalog.GetVersion(PayloadCatalog.CurrentVersionId)!.FindEntryPoint("version.dll")!, Defaults);
+            Assert.Equal(InstallKind.Installed, service.Inspect(profile).Kind);
+            Assert.Equal(currentAsset,
+                File.ReadAllBytes(Path.Combine(gameDir, "dlssg_sm86", "backend", "sm86_backend.dll")));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(gameDir)) Directory.Delete(gameDir, recursive: true);
+            if (Directory.Exists(backupRoot)) Directory.Delete(backupRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Reinstall_ReplacesOurOwnIniInsteadOfBackingItUp()
+    {
+        var entry = Current.FindEntryPoint("version.dll")!;
+        _service.Install(_profile, Current, entry, Defaults);
+
+        // An upgrade over our own install: the INI on disk is ours, so it must not become the
+        // "original" that uninstall restores - that would leave a mod INI behind.
+        _service.Install(_profile, Current, entry, Defaults with { Optimized = 2 });
+        _service.Uninstall(_profile);
+
+        Assert.False(File.Exists(InstalledIni));
+        Assert.Equal(InstallKind.NotInstalled, _service.Inspect(_profile).Kind);
+    }
+
+    [Fact]
+    public void Install_RefusesAForeignFileInTheTree()
+    {
+        var asset = Current.DirectoryAssets[0];
+        string path = AssetFile(asset.Path);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, "another mod's backend");
+
+        Assert.Throws<ForeignFileException>(() =>
+            _service.Install(_profile, Current, Current.FindEntryPoint("version.dll")!, Defaults));
+
+        // With confirmation it is replaced, and the uninstall leaves the foreign file in place
+        // (it was never recorded, so it is not ours to delete).
+        _service.Install(_profile, Current, Current.FindEntryPoint("version.dll")!, Defaults,
+            overwriteForeignFile: true);
+        Assert.Equal(asset.Sha256, Hashing.Sha256File(path), ignoreCase: true);
+    }
+
+    [Fact]
     public void Inspect_FlagsAnIncompleteTree()
     {
         _service.Install(_profile, Current, Current.FindEntryPoint("version.dll")!, Defaults);
@@ -255,7 +379,7 @@ public class InstallationServiceTests : IDisposable
             byte[] currentBytes = { 0x4D, 0x5A, 0x03, 0x01 };
             byte[] legacyBytes = { 0x4D, 0x5A, 0x02, 0x00 };
             byte[] assetBytes = { 0x4D, 0x5A, 0x04, 0x00 };
-            string binDir = Path.Combine(root, "bin", "0.4.0");
+            string binDir = Path.Combine(root, "bin", "0.4.1");
             string templateDir = Path.Combine(root, "templates");
             Directory.CreateDirectory(binDir);
             Directory.CreateDirectory(Path.Combine(binDir, "dlssg_sm86", "runtime"));
@@ -279,8 +403,8 @@ public class InstallationServiceTests : IDisposable
             File.WriteAllText(Path.Combine(root, "catalog.json"), $$"""
             {
               "versions": [{
-                "version": "0.4.0",
-                "displayName": "0.4.0",
+                "version": "0.4.1",
+                "displayName": "0.4.1",
                 "sourceRoot": "external/dlssg_for_sm86",
                 "maxGeneratedFrames": 5,
                 "templates": { "default": "templates/sm86-default.ini" },
@@ -299,7 +423,7 @@ public class InstallationServiceTests : IDisposable
 
             var catalog = PayloadCatalog.Load(root);
             var service = new InstallationService(catalog, _ => new BackupStore(backupRoot));
-            var version = catalog.GetVersion("0.4.0")!;
+            var version = catalog.GetVersion(PayloadCatalog.CurrentVersionId)!;
             var entry = version.FindEntryPoint("version.dll")!;
             string exe = Path.Combine(gameDir, "FakeGame.exe");
             File.WriteAllBytes(exe, new byte[] { 0x4D, 0x5A });

@@ -1,8 +1,8 @@
 namespace DlssgSwapper.Core.Games;
 
-// A file the install wrote under the game folder besides the proxy and the INI. 0.4.0 keeps the
-// runtime, backend and kernel packs in a dlssg_sm86\ tree, and recording their hashes is what lets
-// Uninstall tell our files from a game's own or another mod's.
+// A file the install wrote under the game folder besides the proxy and the INI. Since 0.4.0 the
+// runtime, backend and kernel packs live in a dlssg_sm86\ tree, and recording their hashes is what
+// lets Uninstall tell our files from a game's own or another mod's.
 public sealed record InstalledFileRecord
 {
     // Relative to the game directory, with '\' separators.

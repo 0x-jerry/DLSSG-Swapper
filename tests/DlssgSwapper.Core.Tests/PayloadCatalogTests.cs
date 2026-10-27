@@ -11,22 +11,24 @@ public class PayloadCatalogTests
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
 
-        var current = catalog.GetVersion("0.4.0");
+        var current = catalog.GetVersion("0.4.1");
         Assert.NotNull(current);
         Assert.Equal(5, current.MaxGeneratedFrames);
+        Assert.Equal(3, current.XeSSMaxGeneratedFrames);
         Assert.Equal(6, current.EntryPoints.Count);
         Assert.Equal("version.dll", current.EntryPoints.First(e => e.Recommended).FileName);
         Assert.Equal(4, current.DirectoryAssets.Count);
         // Version IDs from before the current release resolve to the current line, including the
-        // archive-only labels, which is what a saved profile from 0.3.x carries.
-        Assert.Equal("0.4.0", catalog.GetVersion("0.3.5")!.Version);
-        Assert.Equal("0.4.0", catalog.GetVersion("0.3.5-310.1")!.Version);
+        // archive-only labels, which is what a saved profile from an older release carries.
+        Assert.Equal("0.4.1", catalog.GetVersion("0.4.0")!.Version);
+        Assert.Equal("0.4.1", catalog.GetVersion("0.3.5")!.Version);
+        Assert.Equal("0.4.1", catalog.GetVersion("0.3.5-310.1")!.Version);
         Assert.Null(catalog.GetVersion("0.2.4"));
 
         // The single installable line is what the UI offers.
-        Assert.Equal(new[] { "0.4.0" }, catalog.InstallableVersions.Select(v => v.Version));
+        Assert.Equal(new[] { "0.4.1" }, catalog.InstallableVersions.Select(v => v.Version));
 
-        // The 0.3.x lines stay in the catalog for recognition only.
+        // The older lines stay in the catalog for recognition only.
         var archive = catalog.Versions.Single(v => v.Version == "0.3.5");
         Assert.False(archive.Installable);
         Assert.Empty(archive.EntryPoints);
@@ -37,8 +39,9 @@ public class PayloadCatalogTests
     public void GetVersion_MapsPreviousReleaseIds()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.4.0");
+        var current = catalog.GetVersion(PayloadCatalog.CurrentVersionId);
 
+        Assert.Same(current, catalog.GetVersion("0.4.0"));
         Assert.Same(current, catalog.GetVersion("0.3.0"));
         Assert.Same(current, catalog.GetVersion("0.3.0-310.1"));
         Assert.Same(current, catalog.GetVersion("0.3.1"));
@@ -54,16 +57,31 @@ public class PayloadCatalogTests
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
         var archive = catalog.Versions.Single(v => v.Version == "0.3.5");
-        var archive3101 = catalog.Versions.Single(v => v.Version == "0.3.5-310.1");
-        var current = catalog.GetVersion("0.4.0")!;
+        var current = catalog.GetVersion(PayloadCatalog.CurrentVersionId)!;
         Assert.NotEmpty(current.LegacySha256);
 
-        // A proxy from the archived 0.3.5 release and one from the 0.3.x line both belong to us,
-        // while a 0.4.0 proxy is a real entry point.
+        // A proxy from the archived 0.3.5 release and one from the 0.4.0 line both belong to us; the
+        // one from the immediately preceding release resolves to the line that supersedes it.
         Assert.Same(archive, catalog.FindLegacyVersionOf(archive.LegacySha256[0]));
-        Assert.Same(archive3101, catalog.FindLegacyVersionOf(archive3101.LegacySha256[0]));
         Assert.Same(current, catalog.FindLegacyVersionOf(current.LegacySha256[0]));
         Assert.Null(catalog.FindBySha256(archive.LegacySha256[0]));
+        Assert.Null(catalog.FindBySha256(current.LegacySha256[0]));
+    }
+
+    [Fact]
+    public void FindVersionOfAsset_RecognisesThePreviousReleaseTree()
+    {
+        var catalog = PayloadCatalog.Load(PayloadRoot);
+        var current = catalog.GetVersion(PayloadCatalog.CurrentVersionId)!;
+
+        // 0.4.1 replaced every file of the tree, so a 0.4.0 install has to be reported as "another
+        // payload version" rather than as a stranger's file.
+        Assert.NotEmpty(current.LegacyAssetSha256);
+        foreach (string hash in current.LegacyAssetSha256)
+        {
+            Assert.NotNull(catalog.FindVersionOfAsset(hash));
+            Assert.Null(catalog.FindVersionOf(hash));
+        }
     }
 
     [Fact]
@@ -92,7 +110,7 @@ public class PayloadCatalogTests
     public void FindBySha256_ResolvesInstalledProxy()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.4.0")!;
+        var current = catalog.GetVersion(PayloadCatalog.CurrentVersionId)!;
         string hash = Hashing.Sha256File(catalog.ResolveBinaryPath(current, current.FindEntryPoint("dbghelp.dll")!));
 
         var entry = catalog.FindBySha256(hash);
@@ -106,7 +124,7 @@ public class PayloadCatalogTests
     public void FindVersionOfAsset_ResolvesInstalledTreeFiles()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.4.0")!;
+        var current = catalog.GetVersion(PayloadCatalog.CurrentVersionId)!;
         var asset = current.DirectoryAssets.First(a => a.Path.EndsWith("nvngx_dlssg.dll"));
         string hash = Hashing.Sha256File(catalog.ResolveAssetSourcePath(current, asset));
 
@@ -118,7 +136,7 @@ public class PayloadCatalogTests
     public void FindBySha256_DistinguishesProxyFromTreeFile()
     {
         var catalog = PayloadCatalog.Load(PayloadRoot);
-        var current = catalog.GetVersion("0.4.0")!;
+        var current = catalog.GetVersion(PayloadCatalog.CurrentVersionId)!;
         var asset = current.DirectoryAssets[0];
         string hash = Hashing.Sha256File(catalog.ResolveAssetSourcePath(current, asset));
 
@@ -169,7 +187,7 @@ public class PayloadCatalogTests
         string tempRoot = Path.Combine(Path.GetTempPath(), $"payload-asset-test-{Guid.NewGuid():N}");
         try
         {
-            string bin = Path.Combine(tempRoot, "bin", "0.4.0");
+            string bin = Path.Combine(tempRoot, "bin", "0.4.1");
             Directory.CreateDirectory(Path.Combine(bin, "dlssg_sm86", "runtime"));
             Directory.CreateDirectory(Path.Combine(tempRoot, "templates"));
             File.WriteAllText(Path.Combine(bin, "version.dll"), "proxy");
@@ -178,8 +196,8 @@ public class PayloadCatalogTests
             File.WriteAllText(Path.Combine(tempRoot, "catalog.json"), """
             {
               "versions": [{
-                "version": "0.4.0",
-                "displayName": "0.4.0",
+                "version": "0.4.1",
+                "displayName": "0.4.1",
                 "sourceRoot": "external/dlssg_for_sm86",
                 "templates": { "default": "templates/sm86-default.ini" },
                 "entryPoints": [

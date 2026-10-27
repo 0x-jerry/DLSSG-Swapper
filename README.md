@@ -11,19 +11,23 @@ originals, and uninstalls cleanly. Built with WinUI 3 / Windows App SDK.
 - Installs any proxy (`version.dll`, `winmm.dll`, `dbghelp.dll`, `dinput8.dll`,
   `dxgi.dll`, `d3d12.dll`), `dlssg_sm86.ini` and the payload's `dlssg_sm86\`
   folder; swapping keeps only one package proxy. `version.dll` is the default.
-- Bundles the 0.4.0 payload (runtime 310.9.16, up to 6X), SHA256-verified. The
+- Bundles the 0.4.1 payload (runtime 310.9.16, up to 6X), SHA256-verified. The
   proxy alone does nothing — the mod loads its runtime, backend and kernel packs
   from `dlssg_sm86\` — so the tool writes and removes the whole set, and reports
   a 0.3.x install as needing a reinstall instead of a silent upgrade.
 - Writes the supported INI keys, preserving comments, clamped to the payload:
   `[General] Enabled`, `[FrameGeneration] Engine` / `MaxGeneratedFrames`,
   `[DLSSG] Optimized` / `Preset`, `[Logging] Level`. Factory default is 4X; 6X
-  needs `MaxGeneratedFrames=5`, and `Engine=XeSS` stays at 2X.
+  needs `MaxGeneratedFrames=5`, `Engine=XeSS` stops at 4X, and the preset is
+  A / B / C (0.4.1 removed `Auto`).
 - Backs up pre-existing files once per game and restores them on uninstall.
   Foreign files are only overwritten after confirmation, and a `dlssg_sm86`
   file that no longer matches what was installed is left alone.
 - Manual folder picker and Steam library scanner.
-- Verifies installed hashes and the logs written by the mod.
+- Verifies installed hashes and reads the mod's own log
+  (`dlssg_sm86\logs\dlssg_sm86.log`, one file for every process since 0.4.1):
+  the route is confirmed from the game's own lines, and a rejected INI key is
+  reported with the key and the values it accepts.
 - Detects the GPU via `nvidia-smi`: RTX 30 (SM86) and RTX 20 (Turing / SM75)
   are supported; other GPUs are refused.
 
@@ -54,11 +58,12 @@ dotnet publish src/DlssgSwapper.App -c Release -r win-x64 -o out
 
 `payloads/catalog.json` verifies the bundled proxy DLLs and `dlssg_sm86\` files
 against the pinned `external/dlssg_for_sm86` submodule; update both together. A
-proxy from an older release is still recognised (`legacySha256`) and can be
-replaced or uninstalled.
+file from an older release is still recognised (`legacySha256` for proxies,
+`legacyAssetSha256` for the `dlssg_sm86\` tree), so it is replaced or
+uninstalled instead of being treated as someone else's file.
 
 The super-resolution files (`dlssg_sm86\sr\`) ship only in the upstream release
-asset, not in the repository, so `[SuperResolution] Mode=On` is not offered here.
+asset, not in the repository, so `[SuperResolution] Mode` is left at `Off` here.
 
 ## Usage
 

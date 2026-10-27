@@ -11,21 +11,21 @@
     <Content Include="..\..\payloads\catalog.json" Link="payloads\catalog.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\payloads\templates\*.ini" Link="payloads\templates\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <!-- 0.4.0: one small proxy plus the dlssg_sm86 directory the proxy loads from beside itself. -->
-    <Content Include="$(SubmoduleRoot)version.dll" Link="payloads\bin\0.4.0\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)version.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\winmm.dll" Link="payloads\bin\0.4.0\winmm.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\winmm.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\dbghelp.dll" Link="payloads\bin\0.4.0\dbghelp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dbghelp.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\dinput8.dll" Link="payloads\bin\0.4.0\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dinput8.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\dxgi.dll" Link="payloads\bin\0.4.0\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dxgi.dll')" />
-    <Content Include="$(SubmoduleRoot)alternatives\d3d12.dll" Link="payloads\bin\0.4.0\d3d12.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\d3d12.dll')" />
+    <!-- 0.4.1: one small proxy plus the dlssg_sm86 directory the proxy loads from beside itself. -->
+    <Content Include="$(SubmoduleRoot)version.dll" Link="payloads\bin\0.4.1\version.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)version.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\winmm.dll" Link="payloads\bin\0.4.1\winmm.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\winmm.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\dbghelp.dll" Link="payloads\bin\0.4.1\dbghelp.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dbghelp.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\dinput8.dll" Link="payloads\bin\0.4.1\dinput8.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dinput8.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\dxgi.dll" Link="payloads\bin\0.4.1\dxgi.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\dxgi.dll')" />
+    <Content Include="$(SubmoduleRoot)alternatives\d3d12.dll" Link="payloads\bin\0.4.1\d3d12.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)alternatives\d3d12.dll')" />
 
-    <Content Include="$(SubmoduleRoot)dlssg_sm86\backend\sm86_backend.dll" Link="payloads\bin\0.4.0\dlssg_sm86\backend\sm86_backend.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\backend\sm86_backend.dll')" />
-    <Content Include="$(SubmoduleRoot)dlssg_sm86\kernels\fg_kernels.dll" Link="payloads\bin\0.4.0\dlssg_sm86\kernels\fg_kernels.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\kernels\fg_kernels.dll')" />
-    <Content Include="$(SubmoduleRoot)dlssg_sm86\runtime\nvngx_dlssg.dll" Link="payloads\bin\0.4.0\dlssg_sm86\runtime\nvngx_dlssg.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\runtime\nvngx_dlssg.dll')" />
-    <Content Include="$(SubmoduleRoot)dlssg_sm86\xefg\xefg_kernels.dll" Link="payloads\bin\0.4.0\dlssg_sm86\xefg\xefg_kernels.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\xefg\xefg_kernels.dll')" />
+    <Content Include="$(SubmoduleRoot)dlssg_sm86\backend\sm86_backend.dll" Link="payloads\bin\0.4.1\dlssg_sm86\backend\sm86_backend.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\backend\sm86_backend.dll')" />
+    <Content Include="$(SubmoduleRoot)dlssg_sm86\kernels\fg_kernels.dll" Link="payloads\bin\0.4.1\dlssg_sm86\kernels\fg_kernels.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\kernels\fg_kernels.dll')" />
+    <Content Include="$(SubmoduleRoot)dlssg_sm86\runtime\nvngx_dlssg.dll" Link="payloads\bin\0.4.1\dlssg_sm86\runtime\nvngx_dlssg.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\runtime\nvngx_dlssg.dll')" />
+    <Content Include="$(SubmoduleRoot)dlssg_sm86\xefg\xefg_kernels.dll" Link="payloads\bin\0.4.1\dlssg_sm86\xefg\xefg_kernels.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(SubmoduleRoot)dlssg_sm86\xefg\xefg_kernels.dll')" />
 
-    <!-- 0.3.x is archive-only in the catalog: no proxy is bundled, and its hashes exist only so an
-         already-installed old proxy is still recognised instead of being treated as a foreign file. -->
+    <!-- 0.3.x and 0.4.0 are archive-only in the catalog: no file of theirs is bundled, and their hashes
+         exist only so an already-installed file is recognised instead of being treated as foreign. -->
   </ItemGroup>
 
 </Project>

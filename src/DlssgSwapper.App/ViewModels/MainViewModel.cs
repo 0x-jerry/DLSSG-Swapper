@@ -77,7 +77,7 @@ public sealed class GameProfileViewModel : ObservableObject
     public string InstallSummary => Inspection.Kind switch
     {
         InstallKind.Installed when Inspection.OutdatedLayout =>
-            $"0.3.x install detected ({Inspection.InstalledEntryPoint?.FileName ?? ""}) - 0.4.0 needs a reinstall",
+            $"0.3.x install detected ({Inspection.InstalledEntryPoint?.FileName ?? ""}) - a reinstall is needed",
         InstallKind.Installed when Inspection.OutdatedProxy =>
             $"Outdated proxy {Inspection.InstalledEntryPoint?.FileName ?? ""} from a previous release - reinstall to update",
         InstallKind.Installed =>
@@ -113,8 +113,8 @@ public sealed class MainViewModel : ObservableObject
     private PayloadVersion? _selectedVersion;
     private EntryPointOption? _selectedEntryPoint;
     private bool _enabled = true;
-    private int _selectedOptimized = 2;
-    private FrameGenPreset _selectedPreset = FrameGenPreset.Auto;
+    private int _selectedOptimized = 1;
+    private FrameGenPreset _selectedPreset = FrameGenPreset.A;
     private FrameGenEngine _selectedEngine = FrameGenEngine.Dlss;
     private int _selectedMaxFrames = 3;
     private int _selectedLoggingLevel = 1;
@@ -137,15 +137,14 @@ public sealed class MainViewModel : ObservableObject
         OptimizedTiers = new ObservableCollection<int> { 0, 1, 2, 3 };
         Presets = new ObservableCollection<PresetOption>
         {
-            new(FrameGenPreset.Auto, "Auto", "Let the game or the driver profile decide"),
-            new(FrameGenPreset.A, "A", "Force UI recomposition off"),
-            new(FrameGenPreset.B, "B", "Force UI recomposition on (needs a UI plane from the game)"),
+            new(FrameGenPreset.A, "A", "UI recomposition off, FG Lite off (factory default)"),
+            new(FrameGenPreset.B, "B", "UI recomposition on; needs a HUD-less image and a UI plane from the game"),
             new(FrameGenPreset.C, "C — FG Lite", "About a third less GPU time per generated frame, slightly lower image quality"),
         };
         Engines = new ObservableCollection<EngineOption>
         {
             new(FrameGenEngine.Dlss, "DLSS", "NVIDIA's DLSS-G model on this project's SM86/SM75 kernels"),
-            new(FrameGenEngine.XeSS, "XeSS", "Intel's XeSS-FG model, 2X only; a slower engine on RTX 30"),
+            new(FrameGenEngine.XeSS, "XeSS", "Intel's XeSS-FG model 15 (2X–4X); slower than DLSS at 4K on RTX 30"),
         };
         LoggingLevels = new ObservableCollection<int> { 0, 1, 2, 3 };
 
@@ -406,8 +405,10 @@ public sealed class MainViewModel : ObservableObject
 
     private void RebuildMaxFrames(int ceiling)
     {
-        // The XeSS-FG engine only does 2X, so the ceiling the mod accepts for it is 1.
-        if (_selectedEngine == FrameGenEngine.XeSS) ceiling = Math.Min(ceiling, 1);
+        // The XeSS-FG engine has its own ceiling (2X in 0.4.0, 2X-4X in 0.4.1) and the payload line
+        // carries it, so ask the line instead of hard-coding a multiplier here. Writing a value above
+        // it would make the mod refuse frame generation outright (max_generated_frames_unsupported).
+        if (_selectedEngine == FrameGenEngine.XeSS) ceiling = Math.Min(ceiling, XeSSMaxFrames);
 
         MaxFrames.Clear();
         for (int frames = 0; frames <= ceiling; frames++)
@@ -415,6 +416,9 @@ public sealed class MainViewModel : ObservableObject
         if (!MaxFrames.Contains(_selectedMaxFrames))
             SelectedMaxFrames = ceiling;
     }
+
+    // The XeSS-FG ceiling of the selected payload line, and 1 (2X) when nothing is selected.
+    private int XeSSMaxFrames => _selectedVersion?.XeSSMaxGeneratedFrames ?? 1;
 
     private void RebuildEntryPoints(string? preferredFileName)
     {
@@ -636,7 +640,9 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var inspection = item.Inspection;
-        var log = LogInspector.Check(item.Profile.GameDirectory);
+        var log = LogInspector.Check(
+            item.Profile.GameDirectory,
+            Path.GetFileNameWithoutExtension(item.Profile.ExecutablePath));
 
         var lines = new List<string>
         {
@@ -647,6 +653,7 @@ public sealed class MainViewModel : ObservableObject
                 : "Logs: none found yet (start the game once)",
         };
         if (log.Image != null) lines.Add($"Kernel image: {log.Image}");
+        if (log.Proxy != null) lines.Add($"Active proxy: {log.Proxy}");
         lines.AddRange(inspection.Warnings);
         lines.AddRange(log.Messages);
 

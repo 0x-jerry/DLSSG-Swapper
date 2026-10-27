@@ -33,6 +33,11 @@ public sealed record PayloadVersion(
     // Multiplier ceiling the bundled runtime supports: the INI value is clamped to this.
     public int MaxGeneratedFrames { get; init; } = 5;
 
+    // Ceiling under [FrameGeneration] Engine=XeSS. 0.4.0's XeSS-FG engine was 2X only; the 0.4.1
+    // one does 2X-4X. A value above it is refused by the mod (max_generated_frames_unsupported),
+    // so the tool clamps to it instead of writing something that would disable frame generation.
+    public int XeSSMaxGeneratedFrames { get; init; } = 1;
+
     // Files installed under the game folder besides the proxy and the INI.
     public IReadOnlyList<PayloadDirectoryAsset> DirectoryAssets { get; init; } = Array.Empty<PayloadDirectoryAsset>();
 
@@ -40,6 +45,10 @@ public sealed record PayloadVersion(
     // proxy from a previous release is still recognised as ours (for upgrade and uninstall).
     // These files are not shipped and cannot be installed.
     public IReadOnlyList<string> LegacySha256 { get; init; } = Array.Empty<string>();
+
+    // The same for the files of a previous release's dlssg_sm86\ tree: recognised, so a reinstall
+    // reports "from another payload version" instead of treating them as a stranger's files.
+    public IReadOnlyList<string> LegacyAssetSha256 { get; init; } = Array.Empty<string>();
 
     // An archived release kept in the catalog purely for recognition: it has no installable
     // entry point, so it never appears in the install UI.

@@ -21,22 +21,29 @@ public sealed class PayloadCatalog
     private readonly Dictionary<string, PayloadEntryPoint> _bySha256;
     private readonly Dictionary<string, PayloadVersion> _legacyBySha256;
     private readonly Dictionary<string, PayloadVersion> _assetBySha256;
+    private readonly Dictionary<string, PayloadVersion> _legacyAssetBySha256;
 
     // Catalog version IDs were renamed as the payload moved forward; saved profiles still carry the
     // old IDs, so map them to the current line. 0.4.0 replaced the 0.3.x layout outright (the
-    // runtime, backend and kernels moved out of the proxy into dlssg_sm86\), so every older ID
-    // resolves to the 0.4.0 line and installing it replaces the old files.
+    // runtime, backend and kernels moved out of the proxy into dlssg_sm86\), and 0.4.1 keeps that
+    // layout while changing every file in it, so every older ID resolves to the current line and
+    // installing it replaces the old files.
     private static readonly Dictionary<string, string> VersionAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["0.3.0"] = "0.4.0",
-        ["0.3.0-310.1"] = "0.4.0",
-        ["0.3.1"] = "0.4.0",
-        ["0.3.1-310.1"] = "0.4.0",
-        ["0.3.2"] = "0.4.0",
-        ["0.3.2-310.1"] = "0.4.0",
-        ["0.3.5"] = "0.4.0",
-        ["0.3.5-310.1"] = "0.4.0",
+        ["0.3.0"] = CurrentVersionId,
+        ["0.3.0-310.1"] = CurrentVersionId,
+        ["0.3.1"] = CurrentVersionId,
+        ["0.3.1-310.1"] = CurrentVersionId,
+        ["0.3.2"] = CurrentVersionId,
+        ["0.3.2-310.1"] = CurrentVersionId,
+        ["0.3.5"] = CurrentVersionId,
+        ["0.3.5-310.1"] = CurrentVersionId,
+        ["0.4.0"] = CurrentVersionId,
     };
+
+    // The catalog id of the release this build installs; kept in one place because the alias table
+    // and the tests both name it.
+    public const string CurrentVersionId = "0.4.1";
 
     private PayloadCatalog(string root, IReadOnlyList<PayloadVersion> versions)
     {
@@ -51,9 +58,16 @@ public sealed class PayloadCatalog
             foreach (var asset in version.DirectoryAssets)
                 _assetBySha256[asset.Sha256] = version;
         _legacyBySha256 = new Dictionary<string, PayloadVersion>(StringComparer.OrdinalIgnoreCase);
+        _legacyAssetBySha256 = new Dictionary<string, PayloadVersion>(StringComparer.OrdinalIgnoreCase);
+        // First line in catalog order wins: the current release claims every file an older install
+        // of it may still hold, and the archive-only lines below it are documentation.
         foreach (var version in versions)
+        {
             foreach (string hash in version.LegacySha256)
-                _legacyBySha256[hash] = version;
+                _legacyBySha256.TryAdd(hash, version);
+            foreach (string hash in version.LegacyAssetSha256)
+                _legacyAssetBySha256.TryAdd(hash, version);
+        }
     }
 
     // Every catalog line, including the archive-only entries kept for recognition.
@@ -62,9 +76,9 @@ public sealed class PayloadCatalog
     // The lines that can actually be installed, in catalog order.
     public IReadOnlyList<PayloadVersion> InstallableVersions { get; }
 
-    // Saved profiles and the UI may name a release that has since been superseded (0.3.5 and the
-    // rest of the 0.3.x ids now resolve to 0.4.0, which replaced that layout), so the alias table
-    // is consulted before the literal catalog id.
+    // Saved profiles and the UI may name a release that has since been superseded (0.4.0 and the
+    // 0.3.x ids now resolve to the current line, which replaced their files), so the alias table is
+    // consulted before the literal catalog id.
     public PayloadVersion? GetVersion(string version)
     {
         if (VersionAliases.TryGetValue(version, out string? alias))
@@ -95,9 +109,13 @@ public sealed class PayloadCatalog
     public PayloadVersion? FindLegacyVersionOf(string sha256) =>
         _legacyBySha256.TryGetValue(sha256, out var version) ? version : null;
 
-    // A file that belongs to a payload's dlssg_sm86\ tree, matched by content hash.
+    // A file that belongs to a payload's dlssg_sm86\ tree, matched by content hash. A file from an
+    // earlier release of one of the bundled lines counts too: it is ours and has to be replaced,
+    // not treated as a stranger's file.
     public PayloadVersion? FindVersionOfAsset(string sha256) =>
-        _assetBySha256.TryGetValue(sha256, out var version) ? version : null;
+        _assetBySha256.TryGetValue(sha256, out var version)
+            ? version
+            : _legacyAssetBySha256.TryGetValue(sha256, out version) ? version : null;
 
     public PayloadVersion? FindVersionOf(string sha256)
     {
@@ -155,7 +173,9 @@ public sealed class PayloadCatalog
             .ToList())
     {
         MaxGeneratedFrames = dto.MaxGeneratedFrames,
+        XeSSMaxGeneratedFrames = dto.XeSSMaxGeneratedFrames,
         LegacySha256 = dto.LegacySha256,
+        LegacyAssetSha256 = dto.LegacyAssetSha256,
         DirectoryAssets = dto.DirectoryAssets
             .Select(a => new PayloadDirectoryAsset(a.Path, a.Source, a.Sha256, a.Bytes, a.Note))
             .ToList(),
@@ -210,7 +230,9 @@ public sealed class PayloadCatalog
         public string DisplayName { get; set; } = "";
         public string SourceRoot { get; set; } = "";
         public int MaxGeneratedFrames { get; set; } = 5;
+        public int XeSSMaxGeneratedFrames { get; set; } = 1;
         public List<string> LegacySha256 { get; set; } = new();
+        public List<string> LegacyAssetSha256 { get; set; } = new();
         public Dictionary<string, string> Templates { get; set; } = new();
         public List<EntryPointDto> EntryPoints { get; set; } = new();
         public List<DirectoryAssetDto> DirectoryAssets { get; set; } = new();
